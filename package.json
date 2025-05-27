@@ -1,48 +1,42 @@
 {
-  "name": "tailwind-datatable",
+  "name": "@usama/tailwind-datatable",
   "version": "1.0.0",
-  "description": "A lightweight, Vanilla JavaScript DataTable component styled with Tailwind CSS 4, no dependencies required.",
-  "main": "dist/index.cjs.js",
-  "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
+  "description": "A lightweight, Vanilla JavaScript DataTable component styled with Tailwind CSS 4",
+  "exports": "./dist/index.esm.js",
   "type": "module",
   "scripts": {
     "build": "rollup -c",
     "test": "echo \"No tests specified\" && exit 0",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "postinstall": "node scripts/postinstall.js",
+    "size": "size-limit"
   },
-  "keywords": [
-    "datatable",
-    "tailwindcss",
-    "vanilla-js",
-    "table",
-    "javascript",
-    "tailwind",
-    "component"
+  "size-limit": [
+    {
+      "path": "dist/index.esm.js",
+      "limit": "50 kB",
+      "ignore": [
+        "jspdf",
+        "jspdf-autotable"
+      ]
+    }
   ],
-  "author": "Your Name <youremail@example.com>",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/yourusername/tailwind-datatable.git"
-  },
-  "bugs": {
-    "url": "https://github.com/yourusername/tailwind-datatable/issues"
-  },
-  "homepage": "https://github.com/yourusername/tailwind-datatable#readme",
-  "devDependencies": {
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "rollup": "^4.41.1"
-  },
   "peerDependencies": {
+    "jspdf": "^3.0.1",
+    "jspdf-autotable": "^5.0.2",
     "tailwindcss": "^4.0.0"
   },
-  "engines": {
-    "node": ">=14"
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@size-limit/preset-small-lib": "^11.2.0",
+    "rollup": "^4.41.1",
+    "size-limit": "^11.2.0"
   },
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "scripts"
   ]
 }

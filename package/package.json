@@ -1,0 +1,50 @@
+{
+  "name": "@usama/tailwind-datatable",
+  "version": "1.0.0",
+  "description": "A lightweight, Vanilla JavaScript DataTable component styled with Tailwind CSS 4, no dependencies required.",
+  "main": "dist/index.cjs.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "test": "echo \"No tests specified\" && exit 0",
+    "prepare": "npm run build",
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "keywords": [
+    "datatable",
+    "tailwindcss",
+    "vanilla-js",
+    "table",
+    "javascript",
+    "tailwind",
+    "component"
+  ],
+  "author": "Usama Ramzan <usamaramzan978@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/usamaramzan978/tailwind-datatable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/usamaramzan978/tailwind-datatable/issues"
+  },
+  "homepage": "https://github.com/usamaramzan978/tailwind-datatable#readme",
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "rollup": "^4.41.1"
+  },
+  "peerDependencies": {
+    "tailwindcss": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "scripts"
+  ]
+}

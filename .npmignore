@@ -1,27 +1,22 @@
-# Source files - not needed in published package
+# Ignore source files since we publish built files
 src/
+
+# Ignore local configs and build scripts
 rollup.config.js
-*.config.js
-*.test.js
-*.spec.js
+build.js
 
-# Node modules
-node_modules/
-
-# Local environment files
-.env
-
-# Logs
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Git files
-.git
-.gitignore
-
-# VSCode settings
+# Ignore editor/project files
 .vscode/
+.idea/
 
-# Build output - keep 'dist' if your build goes there
-!dist/
+# Ignore git and npm metadata files
+.gitignore
+.npmignore
+package-lock.json
+
+# Ignore logs
+*.log
+
+# Ignore tests if any
+tests/
+__tests__/

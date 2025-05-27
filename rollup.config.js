@@ -1,19 +1,31 @@
-import resolve from "@rollup/plugin-node-resolve";
-
 export default {
   input: "src/index.js",
   output: [
     {
       file: "dist/index.esm.js",
       format: "esm",
-      sourcemap: true,
+      globals: {
+        jspdf: "jsPDF",
+        "jspdf-autotable": "autoTable",
+      },
     },
     {
       file: "dist/index.cjs.js",
       format: "cjs",
-      sourcemap: true,
+      globals: {
+        jspdf: "jsPDF",
+        "jspdf-autotable": "autoTable",
+      },
+    },
+    {
+      file: "dist/index.min.js",
+      format: "iife",
+      name: "TailwindDataTable",
+      globals: {
+        jspdf: "jsPDF",
+        "jspdf-autotable": "autoTable",
+      },
     },
   ],
-  plugins: [resolve()],
-  external: ["jspdf", "jspdf-autotable"], // mark external if you want
+  external: ["jspdf", "jspdf-autotable"], // mark them external so Rollup doesn't bundle
 };
