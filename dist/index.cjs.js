@@ -860,10 +860,14 @@ class DataTable {
     theme = {}, // default to empty object
     columnGroups = [], // Add default empty array here
     stickyHeader = false,
+
+    chunkSize = {
+      print: 100,
+      pdf: 50,
+      excel: 50,
+      csv: 50,
+    },
   }) {
-    // this.table = document.getElementById(tableId);
-    // this.theme = DEFAULT_THEME || {};
-    // Merge default theme with user overrides
     this.theme = {
       ...DEFAULT_THEME,
       ...theme,
@@ -1012,6 +1016,8 @@ class DataTable {
 
     this.columnGroups = columnGroups || [];
     this.stickyHeader = stickyHeader;
+
+    this.chunkSize = chunkSize;
 
     this.init();
   }
@@ -2292,6 +2298,13 @@ class DataTable {
   // handled in the corresponding methods (e.g., exportToExcel, downloadCSV).
   // Make sure that export fetches all data, not just the current page, for full exports.
   // ==============================
+  getChunkSize(type) {
+    // Return chunk size for type or fallback to a safe default
+    if (this.chunkSize && this.chunkSize[type]) {
+      return this.chunkSize[type];
+    }
+    return 1000; // fallback chunk size if not set
+  }
 
   // ==============================
   // EXPORT TO EXCEL
@@ -2299,14 +2312,24 @@ class DataTable {
   // Improved exportToExcel method with chunking and streaming for better memory efficiency
   async exportToExcel() {
     try {
-      this.toggleLoadingSpinner(true);
+      const { default: ExcelJS } = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet("Sheet1");
 
-      // Use visible columns only for export
       const visibleColumns = this.columns.filter(
         (col) => col.visible !== false
       );
+      worksheet.addRow(visibleColumns.map((col) => col.label || col.name));
 
-      // Create export parameters
+      let page = 1;
+      const chunkSize = this.getChunkSize("excel");
+
+      // Define the maximum records to download
+      const maxExcelRecords = 5000; // Adjust based on your needs
+
+      let totalRowsExported = 0;
+
+      let hasMoreData = true;
       const exportParams = new URLSearchParams({
         search: this.search,
         sortBy: this.sort,
@@ -2315,172 +2338,41 @@ class DataTable {
         export: "true",
       });
 
-      // Create a download link to be used later
-      const downloadLink = document.createElement("a");
-      downloadLink.style.display = "none";
-      document.body.appendChild(downloadLink);
+      while (hasMoreData && totalRowsExported < maxExcelRecords) {
+        // Adjust chunkSize dynamically if near maxExcelRecords limit
+        const rowsLeft = maxExcelRecords - totalRowsExported;
+        const currentChunkSize = Math.min(chunkSize, rowsLeft);
 
-      // Initialize streaming writer
-      const fileName = `table-export-${new Date()
-        .toISOString()
-        .slice(0, 10)}.csv`;
-      const streamSaver =
-        window.streamSaver || this.createStreamSaverPolyfill();
-      const writableStream = streamSaver.createWriteStream(fileName);
-      const writer = writableStream.getWriter();
+        exportParams.set("page", page);
+        exportParams.set("perPage", currentChunkSize);
 
-      try {
-        // Create header row
-        const headers = visibleColumns.map(
-          (col) => `"${(col.label || col.name).replace(/"/g, '""')}"`
-        );
-        const headerRow = headers.join(",") + "\r\n";
-        await writer.write(new TextEncoder().encode(headerRow));
+        const response = await fetch(`${this.url}?${exportParams.toString()}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            "X-Requested-For": "export-chunk",
+          },
+        });
 
-        // Process data in chunks
-        let page = 1;
-        let chunkSize = 1000; // Process 1000 records at a time
-        let hasMoreData = true;
-
-        while (hasMoreData) {
-          // Update pagination parameters for this chunk
-          exportParams.set("page", page);
-          exportParams.set("perPage", chunkSize);
-
-          // Fetch chunk
-          const response = await fetch(
-            `${this.url}?${exportParams.toString()}`,
-            {
-              method: "GET",
-              headers: {
-                "Content-Type": "application/json",
-                "X-Requested-For": "export-chunk",
-              },
-            }
+        if (!response.ok) {
+          throw new Error(
+            `Export request failed with status: ${response.status}`
           );
-
-          if (!response.ok) {
-            throw new Error(
-              `Export request failed with status: ${response.status}`
-            );
-          }
-
-          const json = await response.json();
-          const dataChunk = json[this.dataSrc] || [];
-
-          // Check if this is the last chunk
-          hasMoreData = dataChunk.length === chunkSize;
-
-          // Process and write this chunk of data
-          if (dataChunk.length > 0) {
-            let chunkData = "";
-
-            // Process each row in the chunk
-            dataChunk.forEach((row) => {
-              const csvRow = [];
-              visibleColumns.forEach((column) => {
-                // Handle cell value based on column configuration
-                let cellValue = row[column.name] || "";
-
-                // Apply custom render function if it exists and is meant for export
-                if (column.exportRender) {
-                  cellValue = column.exportRender(cellValue, row);
-                } else if (column.render && column.useRenderForExport) {
-                  // Extract text content from HTML if render function is used
-                  const tempDiv = document.createElement("div");
-                  tempDiv.innerHTML = column.render(cellValue, row);
-                  cellValue = tempDiv.textContent || tempDiv.innerText || "";
-                }
-
-                // Escape quotes and format for CSV
-                csvRow.push(`"${String(cellValue).replace(/"/g, '""')}"`);
-              });
-
-              chunkData += csvRow.join(",") + "\r\n";
-            });
-
-            // Write this chunk to the stream
-            await writer.write(new TextEncoder().encode(chunkData));
-          }
-
-          // Move to next page
-          page++;
         }
 
-        // Close the stream and complete the download
-        await writer.close();
-        console.log("Export completed successfully");
-      } catch (error) {
-        await writer.abort(error);
-        throw error;
-      }
-    } catch (error) {
-      console.error("Error exporting data:", error);
-      alert("Error exporting data. Please try again.");
+        const json = await response.json();
+        const dataChunk = this.dataSrc ? json[this.dataSrc] : json.data || [];
 
-      // Fallback method if streaming fails
-      this.exportToExcelFallback();
-    } finally {
-      this.toggleLoadingSpinner(false);
-    }
-  }
+        // Add rows to worksheet
+        dataChunk.forEach((row) => {
+          if (totalRowsExported >= maxExcelRecords) {
+            hasMoreData = false; // reached max rows
+            return;
+          }
 
-  // Fallback export method when streaming is not supported
-  async exportToExcelFallback() {
-    try {
-      console.log("Using fallback export method");
-      this.toggleLoadingSpinner(true);
-
-      // Fetch with more moderate parameters
-      const exportParams = new URLSearchParams({
-        search: this.search,
-        sortBy: this.sort,
-        order: this.order,
-        page: 1,
-        perPage: 5000, // Smaller batch size for fallback
-        columnFilters: JSON.stringify(this.columnFilters),
-        export: "true",
-      });
-
-      const response = await fetch(`${this.url}?${exportParams.toString()}`);
-      if (!response.ok) {
-        throw new Error(
-          `Export request failed with status: ${response.status}`
-        );
-      }
-
-      const json = await response.json();
-      const data = json[this.dataSrc] || [];
-
-      if (data.length === 0) {
-        alert("No data available for export");
-        return;
-      }
-
-      // Use visible columns only
-      const visibleColumns = this.columns.filter(
-        (col) => col.visible !== false
-      );
-
-      // Build CSV content
-      let csvContent = "";
-
-      // Headers
-      const headers = visibleColumns.map(
-        (col) => `"${(col.label || col.name).replace(/"/g, '""')}"`
-      );
-      csvContent += headers.join(",") + "\r\n";
-
-      // Data rows (process in smaller batches to avoid memory issues)
-      const batchSize = 500;
-      for (let i = 0; i < data.length; i += batchSize) {
-        const batch = data.slice(i, i + batchSize);
-
-        batch.forEach((row) => {
-          const csvRow = [];
+          const excelRow = [];
           visibleColumns.forEach((column) => {
             let cellValue = row[column.name] || "";
-
             if (column.exportRender) {
               cellValue = column.exportRender(cellValue, row);
             } else if (column.render && column.useRenderForExport) {
@@ -2488,117 +2380,43 @@ class DataTable {
               tempDiv.innerHTML = column.render(cellValue, row);
               cellValue = tempDiv.textContent || tempDiv.innerText || "";
             }
-
-            csvRow.push(`"${String(cellValue).replace(/"/g, '""')}"`);
+            excelRow.push(cellValue);
           });
-          csvContent += csvRow.join(",") + "\r\n";
+          worksheet.addRow(excelRow);
+          totalRowsExported++;
         });
+
+        // Check if fewer rows returned than requested or max reached
+        hasMoreData =
+          hasMoreData &&
+          dataChunk.length === currentChunkSize &&
+          totalRowsExported < maxExcelRecords;
+        page++;
       }
 
-      // Download using Blob
-      const blob = new Blob([csvContent], {
-        type: "text/csv;charset=utf-8;",
-      });
-      const url = URL.createObjectURL(blob);
-      const downloadLink = document.createElement("a");
-      downloadLink.href = url;
-      downloadLink.download = `table-export-${new Date()
+      const fileName = `table-export-${new Date()
         .toISOString()
-        .slice(0, 10)}.csv`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      URL.revokeObjectURL(url);
+        .slice(0, 10)}.xlsx`;
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", fileName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log("Excel export completed successfully");
     } catch (error) {
-      console.error("Fallback export failed:", error);
-      alert("Export failed. The dataset may be too large for your browser.");
-    } finally {
-      this.toggleLoadingSpinner(false);
-    }
-  }
-
-  // Create a polyfill for streamSaver if needed
-  createStreamSaverPolyfill() {
-    return {
-      createWriteStream: (fileName) => {
-        // In-memory accumulation (not ideal but works as fallback)
-        let data = "";
-
-        return {
-          getWriter: () => ({
-            write: async (chunk) => {
-              data += new TextDecoder().decode(chunk);
-              return Promise.resolve();
-            },
-            close: async () => {
-              // Download the accumulated data
-              const blob = new Blob([data], {
-                type: "text/csv;charset=utf-8;",
-              });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement("a");
-              a.href = url;
-              a.download = fileName;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              data = ""; // Free memory
-              return Promise.resolve();
-            },
-            abort: async () => {
-              data = ""; // Free memory
-              return Promise.resolve();
-            },
-          }),
-        };
-      },
-    };
-  }
-
-  // This method handles chunked data fetching for larger datasets
-  async fetchDataForExport(page = 1, perPage = 1000) {
-    try {
-      // Configure request parameters with pagination support
-      const params = new URLSearchParams({
-        search: this.search,
-        sortBy: this.sort,
-        order: this.order,
-        page: page,
-        perPage: perPage,
-        columnFilters: JSON.stringify(this.columnFilters),
-        export: "true", // Signal to backend this is an export request
-      });
-
-      const response = await fetch(`${this.url}?${params.toString()}`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          "X-Requested-For": "export", // Additional header for export
-          "Cache-Control": "no-cache", // Prevent caching of export requests
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(
-          `Export request failed with status: ${response.status}`
-        );
+      console.error("Error exporting data:", error);
+      alert("Error exporting data. Please try again.");
+      if (typeof this.exportToExcelFallback === "function") {
+        this.exportToExcelFallback();
       }
-
-      const json = await response.json();
-      return {
-        data: json[this.dataSrc] || [],
-        // Return pagination info if available
-        pagination: {
-          current_page: json.current_page || page,
-          last_page: json.last_page || 1,
-          total:
-            json.total || (json[this.dataSrc] ? json[this.dataSrc].length : 0),
-        },
-      };
-    } catch (error) {
-      console.error("Failed to fetch data for export:", error);
-      throw error; // Re-throw to handle in the calling function
     }
   }
 
@@ -2633,7 +2451,9 @@ class DataTable {
 
       // Process data in chunks to avoid memory issues
       let page = 1;
-      let chunkSize = 1000; // Process 1000 records at a time
+      // let chunkSize = 1000; // Process 1000 records at a time
+      const chunkSize = this.getChunkSize("csv");
+
       let hasMoreData = true;
       let totalProcessed = 0;
 
@@ -3007,7 +2827,9 @@ class DataTable {
 
       // Process data in chunks to avoid memory issues
       let page = 1;
-      let chunkSize = 1000; // Process 1000 records at a time
+      // let chunkSize = 1000; // Process 1000 records at a time
+      const chunkSize = this.getChunkSize("print");
+
       let hasMoreData = true;
       let totalProcessed = 0;
       let tableContent = "";
@@ -3169,7 +2991,9 @@ class DataTable {
 
       // Process data in chunks to avoid memory issues
       let page = 1;
-      let chunkSize = 1000; // Process 1000 records at a time
+      // let chunkSize = 1000; // Process 1000 records at a time
+      const chunkSize = this.getChunkSize("pdf");
+
       let hasMoreData = true;
       let totalProcessed = 0;
       let allData = [];

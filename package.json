@@ -17,13 +17,15 @@
       "limit": "50 kB",
       "ignore": [
         "jspdf",
-        "jspdf-autotable"
+        "jspdf-autotable",
+        "exceljs"
       ]
     }
   ],
   "peerDependencies": {
     "jspdf": "^3.0.1",
     "jspdf-autotable": "^5.0.2",
+    "exceljs": "^4.4.0",
     "tailwindcss": "^4.0.0"
   },
   "devDependencies": {

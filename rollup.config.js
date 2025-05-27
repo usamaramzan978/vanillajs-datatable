@@ -27,5 +27,5 @@ export default {
       },
     },
   ],
-  external: ["jspdf", "jspdf-autotable"], // mark them external so Rollup doesn't bundle
+  external: ["jspdf", "jspdf-autotable", "exceljs"], // mark them external so Rollup doesn't bundle
 };
