@@ -7,6 +7,7 @@ export default {
       globals: {
         jspdf: "jsPDF",
         "jspdf-autotable": "autoTable",
+        exceljs: "ExcelJS",
       },
     },
     {
@@ -15,6 +16,7 @@ export default {
       globals: {
         jspdf: "jsPDF",
         "jspdf-autotable": "autoTable",
+        exceljs: "ExcelJS",
       },
     },
     {
@@ -24,6 +26,7 @@ export default {
       globals: {
         jspdf: "jsPDF",
         "jspdf-autotable": "autoTable",
+        exceljs: "ExcelJS",
       },
     },
   ],
