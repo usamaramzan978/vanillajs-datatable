@@ -1,5 +1,5 @@
 {
-  "name": "@usama/tailwind-datatable",
+  "name": "@usama/vanillajs-datatable",
   "version": "1.0.0",
   "description": "A lightweight, Vanilla JavaScript DataTable component styled with Tailwind CSS 4",
   "exports": "./dist/index.esm.js",

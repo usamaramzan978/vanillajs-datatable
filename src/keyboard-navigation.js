@@ -1,5 +1,38 @@
 import { DataTableEvents } from "./datatable-events";
 
+// Navigation Keys
+// | Key           | Action                             |
+// | ------------- | ---------------------------------- |
+// | `ArrowUp`     | Select previous row                |
+// | `ArrowDown`   | Select next row                    |
+// | `ArrowLeft`   | Go to previous page (calls method) |
+// | `ArrowRight`  | Go to next page (calls method)     |
+// | `Home`        | Go to first row                    |
+// | `Ctrl + Home` | Go to first page (calls method)    |
+// | `End`         | Go to last row                     |
+// | `Ctrl + End`  | Go to last page (calls method)     |
+
+// Action Keys (with modifier)
+// | Shortcut   | Action             |
+// | ---------- | ------------------ |
+// | `Ctrl + P` | Print              |
+// | `Ctrl + S` | Focus search input |
+// | `Ctrl + E` | Export to Excel    |
+// | `Ctrl + C` | Export to CSV      |
+// | `Ctrl + D` | Export to PDF      |
+// | `Ctrl + R` | Reload data        |
+// | `Ctrl + F` | Focus search input |
+// | `Ctrl + Z` | Reset table        |
+
+// Action Keys (no modifier)
+// | Key      | Action                                |
+// | -------- | ------------------------------------- |
+// | `/`      | Focus search input                    |
+// | `a`      | Select all rows (if in multiple mode) |
+// | `Space`  | Toggle selection of current row       |
+// | `Enter`  | Trigger row activation (open row)     |
+// | `Escape` | Clear all selected rows               |
+
 export class KeyboardNavigation {
     /**
      * @class KeyboardNavigation
@@ -11,12 +44,14 @@ export class KeyboardNavigation {
      * @param {Function} options.getData - Function to get current table data
      * @param {boolean} [options.enabled=true] - Enable/disable keyboard nav
      */
-    constructor(tableElement, { selectable, getData, enabled = true }) {
+    constructor(tableElement, { selectable, getData, enabled = true, main }) {
         this.table = tableElement;
         this.selectable = selectable;
         this.getData = getData;
         this.enabled = enabled;
         this.lastSelectedRow = null;
+        this._boundKeyHandler = this.handleKeyDown.bind(this);
+        this.main = main;
 
         if (this.enabled) {
             this.init();
@@ -27,7 +62,7 @@ export class KeyboardNavigation {
      * Initialize keyboard navigation
      */
     init() {
-        document.addEventListener("keydown", this.handleKeyDown.bind(this));
+        document.addEventListener("keydown", this._boundKeyHandler);
         return this;
     }
 
@@ -35,18 +70,19 @@ export class KeyboardNavigation {
      * Destroy keyboard navigation
      */
     destroy() {
-        document.removeEventListener("keydown", this.handleKeyDown);
+        document.removeEventListener("keydown", this._boundKeyHandler);
         this.lastSelectedRow = null;
     }
 
     /**
      * Handle keyboard events
-     * @param {KeyboardEvent}
+     * @param {KeyboardEvent} e
      */
     handleKeyDown(e) {
         if (!this.enabled) return;
         if (this._shouldIgnoreKeyEvent(e)) return;
-        console.log("Key:", e.key, "Ctrl:", e.ctrlKey, "Shift:", e.shiftKey);
+
+        // Navigation keys
         switch (e.key) {
             case "ArrowUp":
                 e.preventDefault();
@@ -58,6 +94,25 @@ export class KeyboardNavigation {
                 this.navigateRow(1);
                 break;
 
+            case "ArrowLeft":
+                e.preventDefault();
+                this._navigatePage(-1);
+                break;
+
+            case "ArrowRight":
+                e.preventDefault();
+                this._navigatePage(1);
+                break;
+
+            case "Home":
+                e.preventDefault();
+                if (e.ctrlKey) {
+                    this._goToFirstPage();
+                } else {
+                    this._goToFirstRow();
+                }
+                break;
+
             case "Enter":
                 e.preventDefault();
                 this.openSelectedRow();
@@ -67,69 +122,76 @@ export class KeyboardNavigation {
                 e.preventDefault();
                 this.selectable.clearSelection();
                 break;
+        }
 
-            case "a":
-                if (e.key && this.selectable.selectMode === "multiple") {
+        // Action keys (with modifiers)
+        if (e.ctrlKey || e.metaKey) {
+            switch (e.key.toLowerCase()) {
+                case "p":
                     e.preventDefault();
-                    this.selectable.selectAll();
-                    // console.log("selectMode:", this.selectable.selectMode); // should be "multiple"
-                }
-                break;
-            case "/":
-            case "f":
-                if (
-                    e.key === "/" ||
-                    (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "f") //ctrl + shift + f
-                ) {
+                    this._triggerPrint();
+                    break;
+                case "s":
                     e.preventDefault();
-                    e.stopPropagation(); // Prevent browser from handling it
+                    this._triggerSearch();
+                    break;
+                case "e":
+                    e.preventDefault();
+                    this._triggerExport("excel");
+                    break;
+                case "c":
+                    e.preventDefault();
+                    this._triggerExport("csv");
+                    break;
+                case "d":
+                    e.preventDefault();
+                    this._triggerExport("pdf");
+                    break;
+                case "r":
+                    e.preventDefault();
+                    this.reloadData();
+                    break;
+                case "f":
+                    e.preventDefault();
                     this._focusSearchInput();
-                }
-                break;
+                    break;
+                case "z":
+                    e.preventDefault();
+                    this._triggerReset();
+                    break;
+            }
+        }
+
+        // Single key shortcuts (without modifiers)
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+            switch (e.key) {
+                case "/":
+                    e.preventDefault();
+                    this._focusSearchInput();
+                    break;
+                case "a":
+                    if (this.selectable.selectMode === "multiple") {
+                        e.preventDefault();
+                        this.selectable.selectAll();
+                    }
+                    break;
+                case " ":
+                    e.preventDefault();
+                    this._toggleRowSelection();
+                    break;
+            }
         }
     }
 
     /**
      * Reload table data
      */
-    reloadData() {
-        this.table.dispatchEvent(
-            new CustomEvent("datatable:reload", {
-                bubbles: true,
-            })
-        );
-        console.log("Reloading table data...");
-    }
-    /**
-     * Focus the search input field
-     * @private
-     */
-    _focusSearchInput() {
-        // Try multiple ways to find the search input
-        const searchInput =
-            document.getElementById(`${this.table.id}-search-input`) ||
-            this.table.querySelector(".datatable-search-input") ||
-            document.querySelector("input[data-datatable-search]");
 
-        if (searchInput) {
-            searchInput.focus();
-            searchInput.select();
-            return true;
-        }
-
-        console.warn("Search input not found for table:", this.table.id);
-        return false;
-    }
     /**
      * Navigate between rows
      * @param {number} direction - 1 for down, -1 for up
      */
     navigateRow(direction) {
-        console.log(
-            "Available rows:",
-            this._getVisibleRows().map((r) => r.dataset.id)
-        );
-
         const rows = this._getVisibleRows();
         if (rows.length === 0) return;
 
@@ -139,9 +201,7 @@ export class KeyboardNavigation {
             Math.min(currentIndex + direction, rows.length - 1)
         );
 
-        // Only proceed if we're actually moving to a different row
         if (currentIndex !== newIndex) {
-            // Clear previous selection in single select mode
             if (
                 this.selectable.selectMode === "single" &&
                 this.lastSelectedRow
@@ -152,30 +212,8 @@ export class KeyboardNavigation {
                 );
             }
 
-            // Select new row
             this._selectRow(rows[newIndex]);
         }
-    }
-
-    _selectRow(row) {
-        this.selectable.toggleRowSelection(row.dataset.id, true);
-        this.lastSelectedRow = row;
-        this._scrollRowIntoView(row);
-        console.log("Selecting row with ID:", row.dataset.id);
-
-        // Dispatch selection event
-        this.table.dispatchEvent(
-            new CustomEvent(`datatable:${DataTableEvents.ROW_ACTIVATE}`, {
-                detail: {
-                    rowId: row.dataset.id,
-                    rowData: this.getData().find(
-                        (item) => item.id === row.dataset.id
-                    ),
-                    timestamp: new Date().toISOString(),
-                },
-                bubbles: true,
-            })
-        );
     }
 
     /**
@@ -208,9 +246,8 @@ export class KeyboardNavigation {
             ["INPUT", "TEXTAREA", "SELECT"].includes(
                 document.activeElement.tagName
             ) ||
-            e.ctrlKey ||
-            e.altKey ||
-            e.metaKey
+            (e.ctrlKey && e.key.toLowerCase() === "c") || // Allow Ctrl+C for copy
+            e.altKey
         );
     }
 
@@ -234,11 +271,24 @@ export class KeyboardNavigation {
         return -1;
     }
 
-    // _selectRow(row) {
-    //     this.selectable.toggleRowSelection(row.dataset.id, true);
-    //     this.lastSelectedRow = row;
-    //     this._scrollRowIntoView(row);
-    // }
+    _selectRow(row) {
+        this.selectable.toggleRowSelection(row.dataset.id, true);
+        this.lastSelectedRow = row;
+        this._scrollRowIntoView(row);
+
+        this.table.dispatchEvent(
+            new CustomEvent(`datatable:${DataTableEvents.ROW_ACTIVATE}`, {
+                detail: {
+                    rowId: row.dataset.id,
+                    rowData: this.getData().find(
+                        (item) => item.id === row.dataset.id
+                    ),
+                    timestamp: new Date().toISOString(),
+                },
+                bubbles: true,
+            })
+        );
+    }
 
     _scrollRowIntoView(row) {
         row.scrollIntoView({
@@ -246,5 +296,109 @@ export class KeyboardNavigation {
             block: "nearest",
             inline: "nearest",
         });
+    }
+
+    _focusSearchInput() {
+        const searchInput =
+            document.getElementById(`${this.table.id}-search-input`) ||
+            this.table.querySelector(".datatable-search-input") ||
+            document.querySelector("input[data-datatable-search]");
+
+        if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+            return true;
+        }
+
+        console.warn("Search input not found for table:", this.table.id);
+        return false;
+    }
+
+    _toggleRowSelection() {
+        const rows = this._getVisibleRows();
+        if (rows.length === 0) return;
+
+        const currentIndex = this._getCurrentRowIndex(rows);
+        if (currentIndex >= 0) {
+            const row = rows[currentIndex];
+            const isSelected = this.selectable
+                .getSelectedIds()
+                .includes(row.dataset.id);
+            this.selectable.toggleRowSelection(row.dataset.id, !isSelected);
+        }
+    }
+
+    _goToFirstRow() {
+        const rows = this._getVisibleRows();
+        if (rows.length > 0) {
+            this._selectRow(rows[0]);
+        }
+    }
+
+    _goToLastRow() {
+        const rows = this._getVisibleRows();
+        if (rows.length > 0) {
+            this._selectRow(rows[rows.length - 1]);
+        }
+    }
+
+    // Ctrl + Home
+    _goToFirstPage() {
+        if (this.main?.goToFirstPage) {
+            this.main.goToFirstPage();
+        }
+    }
+    // Ctrl + F , Ctrl + S , /
+    _triggerSearch() {
+        this._focusSearchInput();
+    }
+
+    _triggerExport(format) {
+        if (!this.main || !this.main.buttonConfig) return;
+
+        const config = this.main.buttonConfig;
+
+        if (format === "csv" && config.downloadCsv?.enabled !== false) {
+            // Ctrl + C
+            this.main.downloadCSV();
+        } else if (format === "pdf" && config.downloadPdf?.enabled !== false) {
+            // Ctrl + D
+            this.main.downloadPdf();
+        } else if (
+            // Ctrl + E
+            format === "excel" &&
+            config.exportExcel?.enabled !== false
+        ) {
+            this.main.exportToExcel();
+        } else {
+            console.warn(
+                `Export format "${format}" is disabled or unsupported.`
+            );
+        }
+    }
+
+    // Ctrl + P
+    _triggerPrint() {
+        if (
+            this.main.printTable &&
+            this.main.buttonConfig?.print?.enabled !== false
+        ) {
+            this.main.printTable();
+        }
+    }
+
+    // Ctrl + Z
+    _triggerReset() {
+        if (
+            this.main.resetTable &&
+            this.main.buttonConfig?.reset?.enabled !== false
+        ) {
+            this.main.resetTable();
+        }
+    }
+
+    // Ctrl + R
+    reloadData() {
+        this.main.fetchData();
     }
 }

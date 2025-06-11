@@ -1,4 +1,5 @@
 import { DataTableEvents } from "./datatable-events";
+import { DEFAULT_THEME } from "./datatable-theme";
 
 export class Selectable {
     /**
@@ -19,6 +20,9 @@ export class Selectable {
         this.selectedRows = new Set();
         this.selectionClass = options.selectionClass || "selected";
         this.selectionBgClass = options.selectionBgClass || "bg-red-100";
+
+        this.baseTheme = options.baseTheme || "daisyui"; // <== Add this
+        this.theme = DEFAULT_THEME[this.baseTheme];
 
         if (this.selectable) {
             this._initializeSelection();
@@ -114,6 +118,16 @@ export class Selectable {
         }
 
         row.classList.add(this.selectionClass, this.selectionBgClass);
+
+        if (this.baseTheme === "bootstrap") {
+            row.querySelectorAll("td").forEach((td) => {
+                td.classList.add(
+                    this.selectionBgClass || "bg-primary",
+                    "text-white"
+                );
+            });
+        }
+
         this.selectedRows.add(rowId);
     }
 
@@ -131,6 +145,16 @@ export class Selectable {
         // Restore zebra striping if it exists
         if (zebraClass) {
             row.classList.add(zebraClass);
+        }
+
+        if (this.baseTheme === "bootstrap") {
+            row.querySelectorAll("td").forEach((td) => {
+                // Remove these classes on deselect, not add
+                td.classList.remove(
+                    this.selectionBgClass || "bg-primary",
+                    "text-white"
+                );
+            });
         }
 
         this.selectedRows.delete(rowId);
@@ -238,50 +262,6 @@ export class Selectable {
      * table.toggleRowSelection("row-123", false);
      */
 
-    // toggleRowSelection(rowId, force) {
-    //     const row = this.table.querySelector(`tr[data-id="${rowId}"]`);
-    //     if (!row) return false;
-
-    //     const wasSelected = this.isSelected(rowId);
-    //     let newSelected;
-
-    //     // Determine new selection state
-    //     if (force === undefined) {
-    //         newSelected = !wasSelected;
-    //     } else {
-    //         newSelected = force;
-    //     }
-
-    //     // Handle single selection mode
-    //     if (this.selectMode === "single" && newSelected) {
-    //         this.clearSelection();
-    //     }
-
-    //     // Update selection state
-    //     if (newSelected) {
-    //         this.selectedRows.add(rowId);
-    //         this._dispatchEvent(DataTableEvents.ROW_SELECTED, {
-    //             rowId,
-    //             action: "selected",
-    //             previousState: wasSelected,
-    //         });
-    //     } else if (wasSelected) {
-    //         this.selectedRows.delete(rowId);
-    //         this._dispatchEvent(DataTableEvents.ROW_DESELECTED, {
-    //             rowId,
-    //             action: "deselected",
-    //             previousState: wasSelected,
-    //         });
-    //     }
-
-    //     // Update UI and dispatch general change event
-    //     this._dispatchEvent(DataTableEvents.SELECTION_CHANGED, {
-    //         changedRowId: rowId,
-    //         changeType: newSelected ? "selection" : "deselection",
-    //     });
-
-    //     return newSelected;
-    // }
     // In your Selectable class, update the toggleRowSelection method:
     // In Selectable class
     toggleRowSelection(rowId, force) {
