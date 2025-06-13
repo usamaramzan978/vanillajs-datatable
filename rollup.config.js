@@ -1,3 +1,6 @@
+import resolve from "@rollup/plugin-node-resolve";
+import terser from "@rollup/plugin-terser";
+
 export default {
   input: "src/index.js",
   output: [
@@ -22,7 +25,8 @@ export default {
     {
       file: "dist/index.min.js",
       format: "iife",
-      name: "TailwindDataTable",
+      name: "VanillaJsDatatable", // IIFE global variable name
+      plugins: [terser()],
       globals: {
         jspdf: "jsPDF",
         "jspdf-autotable": "autoTable",
@@ -30,5 +34,6 @@ export default {
       },
     },
   ],
-  external: ["jspdf", "jspdf-autotable", "exceljs"], // mark them external so Rollup doesn't bundle
+  external: ["jspdf", "jspdf-autotable", "exceljs"],
+  plugins: [resolve()],
 };

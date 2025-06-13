@@ -17,9 +17,11 @@ export const DEFAULT_THEME = {
 
     perPageSelect: "select select-sm select-bordered",
     searchWrapper: "relative w-full max-w-xs",
+    searchIcon:
+      "absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content opacity-50 z-10",
     searchInput: "input input-bordered w-full pl-10",
 
-    button: "btn btn-sm btn-outline",
+    button: " px-3 py-1.5 btn btn-sm btn-outline",
 
     // Table structure
     table:
@@ -63,18 +65,20 @@ export const DEFAULT_THEME = {
     buttonGroup: "flex items-center gap-2 cursor-pointer",
 
     perPageSelect:
-      "w-auto text-sm border rounded px-2 py-1 bg-white shadow-sm cursor-pointer",
+      "w-auto text-sm border border-gray-300 rounded px-2 py-1 bg-white cursor-pointer px-3 py-1.5",
     searchWrapper: "relative w-full max-w-sm",
+    searchIcon:
+      "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400",
     searchInput:
-      "w-full pl-10 pr-4 text-sm border rounded px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300",
+      "w-full pl-10 pr-4 text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-black-300",
 
     // Buttons like Reset, Reload, Excel, etc.
     button:
-      "text-sm px-3 py-1.5 border rounded bg-white hover:bg-gray-100 shadow-sm transition cursor-pointer",
+      "flex text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-100 transition cursor-pointer",
 
     // Table container
     table:
-      "min-w-full table-auto border border-gray-200 rounded-lg overflow-hidden shadow-sm",
+      "min-w-full table-auto border border-gray-300 rounded-lg overflow-hidden",
     header: "bg-gray-100 text-gray-700",
     headerCell:
       "px-4 py-3 text-sm font-semibold text-left tracking-wide whitespace-nowrap",
@@ -121,6 +125,7 @@ export const DEFAULT_THEME = {
 
     // 🔍 Search input
     searchWrapper: "position-relative",
+    searchIcon: "position-absolute top-50 start-0 translate-middle-y ms-3",
     searchInput: "form-control form-control-sm ps-4 rounded",
 
     // ⬆ Action buttons (Reset, CSV, etc.)
