@@ -2,6 +2,42 @@
 
 A lightweight, dependency-free, and themeable DataTable built with modern JavaScript — ideal for Tailwind CSS, Bootstrap, or custom UI setups.
 
+[![npm version](https://img.shields.io/npm/v/vanillajs-datatable)](https://www.npmjs.com/package/vanillajs-datatable)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/vanillajs-datatable)](https://bundlephobia.com/package/vanillajs-datatable)
+
+## Installation
+
+### Using NPM
+
+```bash
+npm install vanillajs-datatable
+
+import DataTable from "vanillajs-datatable";
+
+const table = new DataTable({
+  // config options
+});
+```
+
+## Using CDN
+
+```
+<script src="https://unpkg.com/vanillajs-datatable@1.0.0/dist/index.min.js"></script>
+<script>
+  const table = new DataTable({
+    // config options
+  });
+</script>
+```
+
+---
+
+## **Link to Documentation**
+
+```md
+Full Docs: [https://docs.elegantlaravel.com/](https://docs.elegantlaravel.com/)
+```
+
 ## Bundle Size
 
 VanillaJS DataTable is optimized for performance — all builds are well under the 50 kB limit (even compressed):
@@ -57,12 +93,11 @@ VanillaJS DataTable is:
 
 ## Comparison
 
-| Feature          | tailwind-datatable  | DataTables | Tabulator |
+| Feature          | vanillajs-datatable | DataTables | Tabulator |
 | ---------------- | ------------------- | ---------- | --------- |
 | Size (gzip)      | ~14 KB              | 35kb       | 45kb      |
 | Dependencies     | None                | jQuery     | None      |
 | Tailwind Support | Native (Tailwind 4) | Possible   | Possible  |
-| React/Vue        | Via wrapper         | Yes        | Yes       |
 | License          | MIT                 | MIT        | MIT       |
 
 ### 🙌 Thanks
@@ -71,3 +106,11 @@ Built with ❤️ by `Usama`.
 Contributions are welcome — feel free to open an issue or PR!
 
 > 👉 If you find this useful, star the repo and share it!
+
+```
+
+```
+
+```
+
+```

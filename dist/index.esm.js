@@ -3860,11 +3860,6 @@ class DataTable {
   // ==============================
 }
 
-// Optional: global binding for browser usage
-if (typeof window !== "undefined") {
-  window.VanillaJsDatatable = DataTable;
-}
-
 // import DataTable from 'vanillajs-datatable';
 
 export { DataTable as default };
