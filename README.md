@@ -106,11 +106,3 @@ Built with ❤️ by `Usama`.
 Contributions are welcome — feel free to open an issue or PR!
 
 > 👉 If you find this useful, star the repo and share it!
-
-```
-
-```
-
-```
-
-```
