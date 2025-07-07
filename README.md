@@ -1,6 +1,6 @@
 # vanillajs-datatable
 
-A lightweight, dependency-free, and themeable DataTable built with modern JavaScript — ideal for Tailwind CSS, Bootstrap, or custom UI setups.
+A lightweight, dependency-free, and theme-friendly DataTable built with modern JavaScript — works great with Tailwind CSS or Bootstrap.
 
 [![npm version](https://img.shields.io/npm/v/vanillajs-datatable)](https://www.npmjs.com/package/vanillajs-datatable)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/vanillajs-datatable)](https://bundlephobia.com/package/vanillajs-datatable)
@@ -32,11 +32,9 @@ const table = new DataTable({
 
 ---
 
-## **Link to Documentation**
+## Documentation
 
-```md
-Full Docs: [https://docs.elegantlaravel.com/](https://docs.elegantlaravel.com/)
-```
+[**Full Docs**](https://docs.elegantlaravel.com/)
 
 ## Bundle Size
 
@@ -55,11 +53,10 @@ Compression tested using `brotli-size` and `gzip-size`.
 
 ## Build System
 
-| Tool                                                                                       | Purpose                                                          |
-| ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [`rollup`](https://rollupjs.org/)                                                          | Bundles ES modules into different formats (`esm`, `cjs`, `iife`) |
-| [`@rollup/plugin-node-resolve`](https://www.npmjs.com/package/@rollup/plugin-node-resolve) | Resolves third-party dependencies in `node_modules`              |
-| [`@rollup/plugin-terser`](https://www.npmjs.com/package/@rollup/plugin-terser)             | Minifies output for `index.min.js`                               |
+| Tool                                                                           | Purpose                                                          |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
+| [`rollup`](https://rollupjs.org/)                                              | Bundles ES modules into different formats (`esm`, `cjs`, `iife`) |
+| [`@rollup/plugin-terser`](https://www.npmjs.com/package/@rollup/plugin-terser) | Minifies the output for CDN usage `index.min.js`                 |
 
 ## Size Measurement
 
@@ -70,17 +67,23 @@ Compression tested using `brotli-size` and `gzip-size`.
 | [`brotli-size`](https://www.npmjs.com/package/brotli-size)                                   | Measures Brotli-compressed file size        |
 | [`gzip-size`](https://www.npmjs.com/package/gzip-size)                                       | Measures Gzip-compressed file size          |
 
-## Optional UI & Export Dependencies
+## Optional Export Dependencies
 
-| Package                                                            | Purpose                          |
-| ------------------------------------------------------------------ | -------------------------------- |
-| [`tailwindcss`](https://tailwindcss.com/)                          | Optional UI utility for theming  |
-| [`bootstrap`](https://getbootstrap.com/)                           | Optional Bootstrap theme support |
-| [`jspdf`](https://www.npmjs.com/package/jspdf)                     | Export data as PDF               |
-| [`jspdf-autotable`](https://www.npmjs.com/package/jspdf-autotable) | Table formatting for jsPDF       |
-| [`exceljs`](https://www.npmjs.com/package/exceljs)                 | Export table data as Excel       |
+| Package                                                            | Purpose                    |
+| ------------------------------------------------------------------ | -------------------------- |
+| [`jspdf`](https://www.npmjs.com/package/jspdf)                     | Export data as PDF         |
+| [`jspdf-autotable`](https://www.npmjs.com/package/jspdf-autotable) | Table formatting for jsPDF |
+| [`exceljs`](https://www.npmjs.com/package/exceljs)                 | Export table data as Excel |
 
 > These are optional and only loaded if you use export features.
+
+## Theme Support
+
+| Package                                   | Purpose                                          |
+| ----------------------------------------- | ------------------------------------------------ |
+| [`tailwindcss`](https://tailwindcss.com/) | Native Tailwind CSS v4+ support                  |
+| [`bootstrap`](https://getbootstrap.com/)  | Basic Bootstrap styling compatibility (optional) |
+| [`daisyui`](https://daisyui.com/)         | Theme support for DaisyUI components (optional)  |
 
 ## Performance Summary
 
@@ -100,9 +103,15 @@ VanillaJS DataTable is:
 | Tailwind Support | Native (Tailwind 4) | Possible   | Possible  |
 | License          | MIT                 | MIT        | MIT       |
 
+> ✅ `vanillajs-datatable` includes native Tailwind v4 support with theme-friendly styling out of the box — including DaisyUI and custom themes.
+
 ### 🙌 Thanks
 
-Built with ❤️ by `Usama`.
-Contributions are welcome — feel free to open an issue or PR!
+Built with ❤️ by [Usama](https://github.com/usamaramzan978).  
+Contributions are welcome — feel free to [open an issue](https://github.com/usamaramzan978/vanillajs-datatable/issues) or [submit a PR](https://github.com/usamaramzan978/vanillajs-datatable/pulls)!
 
-> 👉 If you find this useful, star the repo and share it!
+[![GitHub issues](https://img.shields.io/github/issues/usamaramzan978/vanillajs-datatable)](https://github.com/usamaramzan978/vanillajs-datatable/issues)
+[![GitHub stars](https://img.shields.io/github/stars/usamaramzan978/vanillajs-datatable)](https://github.com/usamaramzan978/vanillajs-datatable/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/usamaramzan978/vanillajs-datatable)](https://github.com/usamaramzan978/vanillajs-datatable/network)
+
+> 👉 If you find this useful, **please star the repo** and share it!
