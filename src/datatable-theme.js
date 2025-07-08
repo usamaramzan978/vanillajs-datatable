@@ -17,11 +17,10 @@ export const DEFAULT_THEME = {
 
     perPageSelect: "select select-sm select-bordered",
     searchWrapper: "relative w-full max-w-xs",
-    searchIcon:
-      "absolute left-3 top-1/2 transform -translate-y-1/2 text-base-content opacity-50 z-10",
+    searchIcon: "absolute left-3 top-1/2 transform -translate-y-1/2",
     searchInput: "input input-bordered w-full pl-10",
 
-    button: " px-3 py-1.5 btn btn-sm btn-outline",
+    button: "btn btn-sm btn-outline",
 
     // Table structure
     table:
@@ -58,23 +57,23 @@ export const DEFAULT_THEME = {
     paginationEllipsis: "px-2 text-gray-500",
   },
   tailwind: {
-    // Top control bar
-    controlsContainer: "border-b border-dashed border-gray-300",
+    controlsContainer: "border-b border-dashed border-gray-300 bg-white",
     controlsWrapper: "flex flex-wrap items-center justify-between gap-4 p-4",
-    controlsLeft: "flex items-center gap-2",
-    buttonGroup: "flex items-center gap-2 cursor-pointer",
+
+    controlsLeft: "flex items-center gap-4",
+    buttonGroup: "flex flex-wrap items-center gap-2",
 
     perPageSelect:
-      "w-auto text-sm border border-gray-300 rounded px-2 py-1 bg-white cursor-pointer px-3 py-1.5",
-    searchWrapper: "relative w-full max-w-sm",
+      "text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:ring focus:ring-primary",
+
+    searchWrapper: "relative w-full max-w-xs",
     searchIcon:
       "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400",
     searchInput:
-      "w-full pl-10 pr-4 text-sm border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring focus:ring-black-300",
+      "w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
 
-    // Buttons like Reset, Reload, Excel, etc.
     button:
-      "flex text-sm px-3 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-100 transition cursor-pointer",
+      "cursor-pointer flex items-center gap-1 text-sm px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-100 active:bg-gray-200 transition shadow-sm",
 
     // Table container
     table:
@@ -113,29 +112,30 @@ export const DEFAULT_THEME = {
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
     paginationEllipsis: "px-2 text-gray-500 cursor-default",
   },
-  bootstrap: {
-    //  Controls section (top)
-    controlsContainer: "border-bottom border-light-subtle py-3 mb-3",
-    controlsWrapper:
-      "d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3",
 
-    controlsLeft: "d-flex align-items-center flex-wrap gap-2",
-    buttonGroup: "btn-group",
+  bootstrap: {
+    controlsContainer: "py-3 border-bottom bg-white px-3",
+    controlsWrapper:
+      "d-flex flex-wrap justify-content-between align-items-center gap-3",
+
+    controlsLeft: "d-flex flex-wrap align-items-center gap-3",
+    buttonGroup: "btn-group flex-wrap gap-2",
+
     perPageSelect: "form-select form-select-sm w-auto",
 
-    // 🔍 Search input
-    searchWrapper: "position-relative",
-    searchIcon: "position-absolute top-50 start-0 translate-middle-y ms-3",
-    searchInput: "form-control form-control-sm ps-4 rounded",
+    searchWrapper: "position-relative w-md-auto",
+    searchIcon:
+      "position-absolute top-50 start-0 translate-middle-y ps-3 text-muted",
+    searchInput: "form-control form-control-sm ps-5 rounded p-2",
 
-    // ⬆ Action buttons (Reset, CSV, etc.)
-    button: "btn btn-secondary btn-sm",
+    button:
+      "btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 rounded",
 
-    // 🧾 Table
-    table: "table table-striped  table-hover align-middle mb-0",
+    table: "table table-striped table-hover align-middle mb-0 border",
     header: "table-light",
     headerCell: "text-nowrap",
-    headerSticky: "sticky-top bg-light z-1",
+    headerSticky: "sticky-top bg-light z-1 shadow-sm",
+
     groupHeaderRow: "bg-dark text-white text-center fw-bold",
     groupHeaderCell: "",
 
@@ -148,12 +148,11 @@ export const DEFAULT_THEME = {
 
     highlight: "bg-warning text-dark fw-semibold px-1 rounded",
 
-    // 📄 Pagination (bottom)
     paginationContainer:
-      "d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 pt-3 mt-3 border-top",
+      "d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 pt-3 mt-3 border-top px-3",
     paginationInfo: "text-muted small mb-0",
-    paginationWrapper: "btn-group",
-    paginationButton: "btn btn-sm btn-outline-secondary",
+    paginationWrapper: "btn-group flex-wrap gap-2",
+    paginationButton: "btn btn-sm btn-outline-secondary rounded",
     paginationButtonActive: "btn btn-sm btn-primary active",
     paginationButtonDisabled: "disabled",
     paginationEllipsis: "px-2 text-muted",
