@@ -1,6 +1,6 @@
 {
   "name": "vanillajs-datatable",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A lightweight, themeable Vanilla JavaScript DataTable component supporting Tailwind CSS, Bootstrap, and more.",
   "exports": "./dist/index.esm.js",
   "type": "module",
