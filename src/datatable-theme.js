@@ -57,60 +57,57 @@ export const DEFAULT_THEME = {
     paginationEllipsis: "px-2 text-gray-500",
   },
   tailwind: {
-    controlsContainer: "border-b border-dashed border-gray-300 bg-white",
+    controlsContainer:
+      "border-b border-dashed border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700",
     controlsWrapper: "flex flex-wrap items-center justify-between gap-4 p-4",
 
     controlsLeft: "flex items-center gap-4",
     buttonGroup: "flex flex-wrap items-center gap-2",
 
     perPageSelect:
-      "text-sm border border-gray-300 rounded-md px-3 py-1.5 focus:ring focus:ring-primary",
+      "text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md px-3 py-1.5 focus:ring focus:ring-primary",
 
     searchWrapper: "relative w-full max-w-xs",
     searchIcon:
-      "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400",
+      "absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500",
     searchInput:
-      "w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
+      "w-full pl-10 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
 
     button:
-      "cursor-pointer flex items-center gap-1 text-sm px-3 py-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-100 active:bg-gray-200 transition shadow-sm",
+      "cursor-pointer rounded-md flex items-center gap-1 text-sm px-3 py-1.5 border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 active:bg-gray-200 transition shadow-sm",
 
-    // Table container
     table:
-      "min-w-full table-auto border border-gray-300 rounded-lg overflow-hidden",
-    header: "bg-gray-100 text-gray-700",
+      "min-w-full table-auto border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden",
+    header: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white",
     headerCell:
       "px-4 py-3 text-sm font-semibold text-left tracking-wide whitespace-nowrap",
-    headerSticky: "sticky top-0 z-10 bg-white shadow",
+    headerSticky: "sticky top-0 z-10 bg-white dark:bg-gray-900 shadow",
 
-    // Group header (optional use)
-    groupHeaderRow: "bg-gray-200 text-gray-800 font-semibold text-center",
+    groupHeaderRow:
+      "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-100 font-semibold text-center",
     groupHeaderCell: "",
 
-    // Filters
-    filterRow: "bg-gray-50 column-filters",
+    filterRow: "bg-gray-50 dark:bg-gray-800 column-filters",
     filterInput:
-      "w-full text-sm border px-2 py-1 rounded column-search bg-white",
+      "w-full text-sm border px-2 py-1 rounded column-search bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white",
 
-    // Table rows
-    body: "bg-white divide-y divide-gray-200",
-    row: "hover:bg-blue-50 hover:shadow-sm hover:cursor-pointer transition-colors duration-150",
-    cell: "px-4 py-3 text-sm text-gray-800 whitespace-nowrap",
+    body: "bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700",
+    row: "hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-sm hover:cursor-pointer transition-colors duration-150",
+    cell: "px-4 py-3 text-sm text-gray-800 dark:text-gray-100 whitespace-nowrap",
 
-    // Highlighting
-    highlight: "bg-yellow-200 text-black font-semibold rounded px-1",
+    highlight:
+      "bg-yellow-200 dark:bg-yellow-500 text-black dark:text-gray-900 font-semibold rounded px-1",
 
-    // Pagination
     paginationContainer:
-      "flex justify-between items-center px-4 py-3 border-t border-gray-300 bg-gray-100 text-gray-800 rounded-b-lg",
-    paginationInfo: "text-sm text-gray-600",
+      "flex justify-between items-center px-4 py-3 border-t border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-b-lg",
+    paginationInfo: "text-sm text-gray-600 dark:text-gray-400",
     paginationWrapper: "flex gap-1 mt-2",
     paginationButton:
-      "px-3 py-1.5 text-sm border rounded hover:bg-gray-200 transition cursor-pointer",
+      "px-3 py-1.5 text-sm border rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition cursor-pointer border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white",
     paginationButtonActive:
       "bg-blue-600 text-white border-blue-600 cursor-pointer",
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
-    paginationEllipsis: "px-2 text-gray-500 cursor-default",
+    paginationEllipsis: "px-2 text-gray-500 dark:text-gray-400 cursor-default",
   },
 
   bootstrap: {
