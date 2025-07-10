@@ -95,7 +95,7 @@ export default class DataTable {
     saveStateDuration = 60 * 60 * 1000, // 1 hour
 
     theme = {}, // default to empty object
-    baseTheme = "daisyui",
+    baseTheme = "tailwind",
   }) {
     // this.theme = {
     //     ...DEFAULT_THEME,
@@ -106,6 +106,11 @@ export default class DataTable {
     this.theme = {
       ...selectedTheme,
       ...theme, // override specific classes
+      framework: baseTheme.includes("bootstrap")
+        ? "bootstrap"
+        : baseTheme.includes("daisyui")
+        ? "daisyui"
+        : "tailwind",
     };
 
     this.data = [];
@@ -614,49 +619,84 @@ export default class DataTable {
 
   // Method to toggle the loading spinner visibility based on the `loadingSpinner` boolean
   toggleLoadingSpinner(isLoading) {
-    if (!this.enableLoadingSpinner) return;
+    if (!this.enableLoadingSpinner || !this.tableId) return;
+
+    const table = document.getElementById(this.tableId);
+    if (!table) return;
+
+    const tbody = table.querySelector("tbody");
+    if (!tbody) return;
 
     let spinnerContainer = document.getElementById(
       this.LoadingSpinnerContainer
     );
+    const isTailwind = this.theme.framework === "tailwind";
+    const isBootstrap = this.theme.framework === "bootstrap";
+    const isDaisyUI = this.theme.framework === "daisyui";
 
     if (!spinnerContainer) {
       // Create overlay container
+
       spinnerContainer = document.createElement("div");
       spinnerContainer.id = this.LoadingSpinnerContainer;
-      spinnerContainer.className =
-        "absolute inset-0 flex items-center justify-center bg-base-100/70 z-50 hidden";
 
-      // Create Daisy UI loading spinner
-      const spinner = document.createElement("span");
-      spinner.className = "loading loading-dots loading-lg";
+      let spinner;
+
+      if (isBootstrap) {
+        spinnerContainer.className =
+          "position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75  d-none";
+        spinner = document.createElement("div");
+        spinner.className = "spinner-border text-primary";
+      } else if (isDaisyUI) {
+        spinnerContainer.className =
+          "absolute inset-0 flex items-center justify-center bg-base-100/70 z-50 hidden";
+        spinner = document.createElement("span");
+        spinner.className = "loading loading-dots loading-lg"; // DaisyUI spinner class
+      } else {
+        spinnerContainer.className =
+          "absolute inset-0 flex items-center justify-center bg-white/70 z-50 hidden";
+        // Create Tailwind/DaisyUI CSS spinner
+        spinner = document.createElement("div");
+        spinner.className =
+          "w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin";
+      }
 
       spinnerContainer.appendChild(spinner);
 
-      // Make table container a positioning context
-      if (!this.table.parentNode.classList.contains("relative")) {
-        this.table.parentNode.classList.add("relative");
+      const tbodyWrapper = tbody.parentNode;
+      if (!tbodyWrapper.classList.contains("relative")) {
+        tbodyWrapper.classList.add("relative");
       }
-      this.table.parentNode.appendChild(spinnerContainer);
+
+      tbodyWrapper.appendChild(spinnerContainer);
     }
 
-    // Clear any existing timeout
     if (this.loadingSpinnerTimeout) {
       clearTimeout(this.loadingSpinnerTimeout);
     }
 
     // Show/hide with optional auto-hide
     if (isLoading) {
-      spinnerContainer.classList.remove("hidden");
+      if (isBootstrap) {
+        spinnerContainer.classList.remove("d-none");
+      } else {
+        spinnerContainer.classList.remove("hidden");
+      }
+
       if (this.loadingSpinnerDuration > 0) {
         this.loadingSpinnerTimeout = setTimeout(() => {
           this.toggleLoadingSpinner(false);
         }, this.loadingSpinnerDuration);
       }
     } else {
-      spinnerContainer.classList.add("hidden");
+      if (isBootstrap) {
+        spinnerContainer.classList.add("d-none");
+      } else {
+        spinnerContainer.classList.add("hidden");
+      }
     }
   }
+
   // ==============================
   // Header Download Buttons
   // ==============================
@@ -1393,7 +1433,11 @@ export default class DataTable {
       return;
     }
 
-    tbody.className = this.theme.body || ""; // Use tbody theme if provided
+    tbody.className = this.theme.body || "";
+
+    const isTailwind = this.theme.framework === "tailwind";
+    const isBootstrap = this.theme.framework === "bootstrap";
+    const isDaisyUI = this.theme.framework === "daisyui";
 
     rows.forEach((row, rowIndex) => {
       const tr = document.createElement("tr");
@@ -1407,6 +1451,23 @@ export default class DataTable {
         tr.classList.add(...this.theme.rowClass.split(" "));
       }
 
+      // Add initial hidden/fade classes
+      // Tailwind: fade & move
+      if (isTailwind) {
+        tr.classList.add(
+          "opacity-0",
+          "translate-y-2",
+          "transition-all",
+          "duration-300"
+        );
+      }
+
+      // Bootstrap: fade only (no translate)
+      if (isBootstrap) {
+        tr.classList.add("opacity-0", "transition", "duration-300");
+      }
+
+      // Create and append <td>s
       this.columns.forEach((column) => {
         if (column.visible === false) return;
 
@@ -1416,6 +1477,23 @@ export default class DataTable {
       });
 
       tbody.appendChild(tr);
+
+      // Animate row with stagger
+      const delay = rowIndex * 50;
+
+      if (isTailwind) {
+        setTimeout(() => {
+          tr.classList.remove("opacity-0", "translate-y-2");
+          tr.classList.add("opacity-100", "translate-y-0");
+        }, delay);
+      }
+
+      if (isBootstrap) {
+        setTimeout(() => {
+          tr.classList.remove("opacity-0");
+          tr.classList.add("opacity-100");
+        }, delay);
+      }
     });
   }
 

@@ -89,7 +89,7 @@ export const DEFAULT_THEME = {
 
     filterRow: "bg-gray-50 dark:bg-gray-800 column-filters",
     filterInput:
-      "w-full text-sm border px-2 py-1 rounded column-search bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white",
+      "w-full pl-3 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
 
     body: "bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700",
     row: "hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-sm hover:cursor-pointer transition-colors duration-150",
@@ -109,12 +109,12 @@ export const DEFAULT_THEME = {
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
     paginationEllipsis: "px-2 text-gray-500 dark:text-gray-400 cursor-default",
   },
-
   bootstrap: {
-    controlsContainer: "py-3 border-bottom bg-white px-3",
+    // Container with padding but no fixed background color
+    controlsContainer: "py-3 border-bottom px-3",
+
     controlsWrapper:
       "d-flex flex-wrap justify-content-between align-items-center gap-3",
-
     controlsLeft: "d-flex flex-wrap align-items-center gap-3",
     buttonGroup: "btn-group flex-wrap gap-2",
 
@@ -129,14 +129,14 @@ export const DEFAULT_THEME = {
       "btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 rounded",
 
     table: "table table-striped table-hover align-middle mb-0 border",
-    header: "table-light",
+    header: "", // Remove "table-light" to let dark mode work
     headerCell: "text-nowrap",
-    headerSticky: "sticky-top bg-light z-1 shadow-sm",
+    headerSticky: "sticky-top bg-body-tertiary z-1 shadow-sm", // Use context-aware bg
 
-    groupHeaderRow: "bg-dark text-white text-center fw-bold",
+    groupHeaderRow: "bg-secondary text-white text-center fw-bold", // bg-secondary is better than hardcoded bg-dark
     groupHeaderCell: "",
 
-    filterRow: "bg-light-subtle column-filters",
+    filterRow: "bg-body-secondary column-filters", // auto-adapts to dark/light
     filterInput: "form-control form-control-sm column-search",
 
     body: "",

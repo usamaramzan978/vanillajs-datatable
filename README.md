@@ -22,7 +22,7 @@ const table = new DataTable({
 ## Using CDN
 
 ```
-<script src="https://unpkg.com/vanillajs-datatable@1.0.0/dist/index.min.js"></script>
+<script src="https://unpkg.com/vanillajs-datatable@1.0.3/dist/index.min.js"></script>
 <script>
   const table = new DataTable({
     // config options
@@ -115,3 +115,7 @@ Contributions are welcome — feel free to [open an issue](https://github.com/us
 [![GitHub forks](https://img.shields.io/github/forks/usamaramzan978/vanillajs-datatable)](https://github.com/usamaramzan978/vanillajs-datatable/network)
 
 > 👉 If you find this useful, **please star the repo** and share it!
+
+### License
+
+vanillajs-datatable is open-sourced software licensed under the [MIT license](LICENSE.md).
