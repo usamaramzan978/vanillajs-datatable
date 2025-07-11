@@ -96,7 +96,10 @@ export default class DataTable {
 
     theme = {}, // default to empty object
     baseTheme = "tailwind",
+
+    rangeFilterFields = {},
   }) {
+    this.rangeFilterFields = rangeFilterFields;
     // this.theme = {
     //     ...DEFAULT_THEME,
     //     ...theme,
@@ -390,7 +393,7 @@ export default class DataTable {
    * Dispatches a 'stateRestored' event after loading.
    */
   loadState() {
-    console.log("Loading state" + this.table);
+    // console.log("Loading state" + this.table);
     const saved = localStorage.getItem(`datatable_${this.table.id}_state`);
     if (!saved) return;
 
@@ -1008,13 +1011,24 @@ export default class DataTable {
   //===================
   // FETCH DATA
   //===================
+  getRangeFilters() {
+    const filters = {};
+    for (const [key] of Object.entries(this.rangeFilterFields)) {
+      const min = document.querySelector(`[data-filter-min="${key}"]`)?.value;
+      const max = document.querySelector(`[data-filter-max="${key}"]`)?.value;
 
-  async fetchData() {
+      if (min || max) {
+        filters[key] = { min, max };
+      }
+    }
+    return filters;
+  }
+
+  async fetchData({ applyRangeFilters = false } = {}) {
     // Show loading spinner immediately when enabled
     if (this.enableLoadingSpinner) {
       this.toggleLoadingSpinner(true);
     }
-
     const params = new URLSearchParams({
       search: this.search,
       sortBy: this.sort,
@@ -1023,6 +1037,9 @@ export default class DataTable {
       perPage: this.rowsPerPage,
       columnFilters: JSON.stringify(this.columnFilters),
     });
+    if (applyRangeFilters) {
+      params.append("rangeFilters", JSON.stringify(this.getRangeFilters()));
+    }
 
     this.dispatchEvent(DataTableEvents.LOADING, {
       queryParams: params.toString(),
@@ -1116,18 +1133,10 @@ export default class DataTable {
     }
   }
 
-  /**
-   * Renders the table with current data.
-   * This is an internal method, not meant for public use.
-   * @private
-   */
   _renderTable() {
     // Call the renderTable method with the current data
     this.renderTable(this.data);
   }
-  /**
-   * Renders the table header, including optional group headers and filter inputs.
-   */
   renderTableHeader() {
     if (this.theme?.table) {
       this.table.className = this.theme.table;
@@ -1169,17 +1178,6 @@ export default class DataTable {
     }
   }
 
-  /**
-   * Renders the group headers for the table, using the `columnGroups` option.
-   * This function assumes that the `columnGroups` option is an array of objects
-   * with keys `key` and `label`, where `key` is the column key and `label` is
-   * the text to display in the group header.
-   *
-   * @param {HTMLTableSectionElement} thead - The table head element to render
-   * into.
-   * @param {DataColumn[]} visibleColumns - The columns to render group headers
-   * for.
-   */
   renderGroupHeaders(thead, visibleColumns) {
     const groupHeaderRow = thead.insertRow();
     groupHeaderRow.className = this.theme.groupHeaderRow || "";
@@ -1223,20 +1221,105 @@ export default class DataTable {
     }
   }
 
-  /**
-   * Renders the filter inputs for the table, using the `columnFilterFields`
-   * option. This function assumes that the `columnFilterFields` option is an
-   * array of column keys.
-   *
-   * @param {HTMLTableSectionElement} thead - The table head element to render
-   * into.
-   * @param {DataColumn[]} visibleColumns - The columns to render filter inputs
-   * for.
-   */
   renderFilterInputs(thead, visibleColumns) {
     const filterRow = thead.insertRow();
     filterRow.className = this.theme.filterRow || "";
     this.columnFilters = this.columnFilters || {};
+
+    // Range filter
+    if (Object.keys(this.rangeFilterFields || {}).length > 0) {
+      const rangeRow = thead.insertRow();
+      const rangeTh = document.createElement("th");
+      rangeTh.colSpan = 100;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "w-full";
+
+      // Toggle Header
+      const toggleHeader = document.createElement("div");
+      toggleHeader.className = this.theme.advancedFilterToggle;
+      toggleHeader.innerHTML = `
+        <span class="text-gray-700 dark:text-white">Advanced Filters</span>
+        <svg id="range-toggle-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" class="${this.theme.advancedFilterArrow}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>`;
+
+      // Container for filter fields
+      const container = document.createElement("div");
+      container.className = this.theme.advancedFilterRow;
+
+      for (const [field, config] of Object.entries(this.rangeFilterFields)) {
+        const type = config.type === "number" ? "number" : "date";
+        const label = config.label || field;
+
+        const group = document.createElement("div");
+        group.className = this.theme.advancedFilterDiv;
+        const labelEl = document.createElement("label");
+        labelEl.className = this.theme.advancedFilterLabel;
+        labelEl.textContent = label;
+
+        const inputsWrapper = document.createElement("div");
+        inputsWrapper.className = this.theme.advancedFilterInputs;
+
+        const inputMin = document.createElement("input");
+        inputMin.type = type;
+        inputMin.placeholder = config.placeholderMin || "From";
+        inputMin.dataset.filterMin = field;
+        inputMin.className = this.theme.advancedFilterInput;
+
+        const inputMax = document.createElement("input");
+        inputMax.type = type;
+        inputMax.placeholder = config.placeholderMax || "To";
+        inputMax.dataset.filterMax = field;
+        inputMax.className = this.theme.advancedFilterInput;
+
+        inputsWrapper.appendChild(inputMin);
+        inputsWrapper.appendChild(inputMax);
+        group.appendChild(labelEl);
+        group.appendChild(inputsWrapper);
+        container.appendChild(group);
+      }
+
+      // Add submit button
+      const buttonsWrapper = document.createElement("div");
+      buttonsWrapper.className = this.theme.advancedFilterButtonContainer;
+      const submitBtn = document.createElement("button");
+      submitBtn.textContent = "Apply Filters";
+      submitBtn.type = "button";
+      submitBtn.className = this.theme.advancedFilterButton;
+      submitBtn.addEventListener("click", () => {
+        this.fetchData({ applyRangeFilters: true });
+      });
+
+      buttonsWrapper.appendChild(submitBtn);
+      container.appendChild(buttonsWrapper);
+
+      const isTailwind = this.theme.framework === "tailwind";
+      const isBootstrap = this.theme.framework === "bootstrap";
+      const isDaisyUI = this.theme.framework === "daisyui";
+
+      toggleHeader.addEventListener("click", () => {
+        // container.classList.toggle("hidden");
+        if (isTailwind) {
+          container.classList.toggle("max-h-0");
+          container.classList.toggle("opacity-0");
+          container.classList.toggle("max-h-[1000px]");
+          container.classList.toggle("opacity-100");
+          container.classList.toggle("py-0");
+          container.classList.toggle("py-3");
+        }
+        if (isBootstrap) {
+          container.classList.toggle("d-none");
+        }
+        const arrow = toggleHeader.querySelector("#range-toggle-arrow");
+        arrow.classList.toggle("rotate-180");
+      });
+
+      wrapper.appendChild(toggleHeader);
+      wrapper.appendChild(container);
+      rangeTh.appendChild(wrapper);
+      rangeRow.appendChild(rangeTh);
+    }
 
     visibleColumns.forEach((column) => {
       const th = document.createElement("th");
@@ -1254,14 +1337,6 @@ export default class DataTable {
           this.debounce((e) => {
             this.columnFilters[column.name] = e.target.value;
             this.dispatchEvent(DataTableEvents.FILTER, {
-              /**
-               * @prop {DataColumn} column - The column being filtered
-               * @prop {string} value - The value to filter by
-               * @prop {Object} filters - The full set of column filters
-               * @prop {string} timestamp - The timestamp of the event
-               * @prop {string} tableId - The ID of the table
-               * @prop {number} searchDelay - The debouncing delay
-               */
               column: column,
               value: e.target.value,
               filters: this.columnFilters,
@@ -1280,16 +1355,6 @@ export default class DataTable {
     });
   }
 
-  /**
-   * Renders the column headers for the table, using the `columns` option.
-   * This function assumes that the `columns` option is an array of objects
-   * with keys `name`, `label`, and optionally `visible`, `group`, `tooltip`.
-   *
-   * @param {HTMLTableSectionElement} thead - The table head element to render
-   * into.
-   * @param {DataColumn[]} visibleColumns - The columns to render headers for.
-   * @param {boolean} hasGroups - Whether the table has column groups.
-   */
   renderColumnHeaders(thead, visibleColumns, hasGroups) {
     const headerRow = thead.insertRow();
 

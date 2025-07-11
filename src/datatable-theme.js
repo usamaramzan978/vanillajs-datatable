@@ -61,7 +61,8 @@ export const DEFAULT_THEME = {
       "border-b border-dashed border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700",
     controlsWrapper: "flex flex-wrap items-center justify-between gap-4 p-4",
 
-    controlsLeft: "flex items-center gap-4",
+    controlsLeft:
+      "flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2",
     buttonGroup: "flex flex-wrap items-center gap-2",
 
     perPageSelect:
@@ -80,7 +81,7 @@ export const DEFAULT_THEME = {
       "min-w-full table-auto border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden",
     header: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white",
     headerCell:
-      "px-4 py-3 text-sm font-semibold text-left tracking-wide whitespace-nowrap",
+      "px-4 py-3 text-sm font-medium text-left tracking-wide whitespace-nowrap",
     headerSticky: "sticky top-0 z-10 bg-white dark:bg-gray-900 shadow",
 
     groupHeaderRow:
@@ -99,7 +100,7 @@ export const DEFAULT_THEME = {
       "bg-yellow-200 dark:bg-yellow-500 text-black dark:text-gray-900 font-semibold rounded px-1",
 
     paginationContainer:
-      "flex justify-between items-center px-4 py-3 border-t border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-b-lg",
+      "flex flex-col sm:flex-row justify-between sm:items-center items-start px-4 py-3 border-t border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-b-lg",
     paginationInfo: "text-sm text-gray-600 dark:text-gray-400",
     paginationWrapper: "flex gap-1 mt-2",
     paginationButton:
@@ -108,6 +109,23 @@ export const DEFAULT_THEME = {
       "bg-blue-600 text-white border-blue-600 cursor-pointer",
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
     paginationEllipsis: "px-2 text-gray-500 dark:text-gray-400 cursor-default",
+
+    // Advanced Filters UI Wrapper
+    advancedFilterToggle:
+      "px-4 py-3 flex justify-between items-center cursor-pointer bg-gray-200 dark:bg-gray-900 text-sm font-medium gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200",
+    advancedFilterArrow:
+      "transform transition-transform duration-300 text-gray-600 dark:text-white",
+    advancedFilterRow:
+      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-0 px-2 bg-gray-100 dark:bg-gray-900 rounded-lg transition-all duration-500 max-h-0 opacity-0 overflow-hidden",
+    advancedFilterDiv: "flex flex-col items-start",
+    advancedFilterLabel:
+      "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+    advancedFilterInputs: "flex gap-2",
+    advancedFilterInput:
+      "w-full pl-3 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary placeholder:font-normal",
+    advancedFilterButtonContainer: "flex items-center justify-start mt-5",
+    advancedFilterButton:
+      "w-40 h-10 cursor-pointer px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md",
   },
   bootstrap: {
     // Container with padding but no fixed background color
@@ -153,5 +171,18 @@ export const DEFAULT_THEME = {
     paginationButtonActive: "btn btn-sm btn-primary active",
     paginationButtonDisabled: "disabled",
     paginationEllipsis: "px-2 text-muted",
+
+    // Advanced Filters UI Wrapper
+    advancedFilterToggle:
+      "cursor-pointer d-flex justify-content-between align-items-center px-3 py-3 cursor-pointer bg-body-secondary fw-medium hover-bg-secondary-subtle transition",
+    advancedFilterArrow: "transition-transform duration-300",
+    advancedFilterRow:
+      "row gy-3 gx-2 py-3 px-3 bg-body-tertiary rounded shadow-sm",
+    advancedFilterDiv: "col-12 col-md-6 col-lg-4 d-flex flex-column",
+    advancedFilterLabel: "form-label mb-1 fw-medium text-body",
+    advancedFilterInputs: "d-flex gap-2",
+    advancedFilterInput: "form-control form-control-sm",
+    advancedFilterButtonContainer: "px-3 mt-4 d-flex justify-content-start",
+    advancedFilterButton: "btn btn-primary btn-sm px-4 py-2 fw-semibold",
   },
 };
