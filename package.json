@@ -1,6 +1,6 @@
 {
   "name": "vanillajs-datatable",
-  "version": "1.0.6",
+  "version": "1.0.3",
   "description": "A lightweight, dependency-free, and theme-friendly DataTable alternative to jQuery DataTables built with modern JavaScript — works great with Tailwind CSS, DaisyUI, and Bootstrap.",
   "exports": "./dist/index.esm.js",
   "type": "module",
