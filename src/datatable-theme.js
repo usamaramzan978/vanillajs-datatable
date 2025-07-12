@@ -55,6 +55,22 @@ export const DEFAULT_THEME = {
     paginationButtonActive: "btn-primary",
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
     paginationEllipsis: "px-2 text-gray-500",
+
+    // Advanced Filters UI Wrapper
+    advancedFilterToggle:
+      "px-4 py-3 flex justify-between items-center cursor-pointer bg-base-200 text-sm font-medium gap-2 hover:bg-base-300 transition-colors duration-200",
+    advancedFilterArrow: "transition-transform duration-300 text-base-content",
+    advancedFilterRow:
+      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-0 px-2 bg-base-100 rounded-box transition-all duration-500 max-h-0 opacity-0 overflow-hidden",
+    advancedFilterDiv: "form-control",
+    advancedFilterLabel: "label-text text-sm mb-1",
+    advancedFilterInputs: "flex gap-2",
+    advancedFilterInput: "input input-sm input-bordered w-full",
+    advancedFilterButtonContainer: "flex items-center justify-start mt-5",
+    advancedFilterButton: "btn btn-primary btn-sm w-40 h-10",
+
+    scrollWrapperClass: "overflow-y-auto",
+    scrollLoaderClass: "text-center py-2 text-sm text-base-content",
   },
   tailwind: {
     controlsContainer:
@@ -126,6 +142,9 @@ export const DEFAULT_THEME = {
     advancedFilterButtonContainer: "flex items-center justify-start mt-5",
     advancedFilterButton:
       "w-40 h-10 cursor-pointer px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md",
+
+    scrollWrapperClass: "overflow-y-auto",
+    scrollLoaderClass: "text-center py-2 text-sm text-gray-500",
   },
   bootstrap: {
     // Container with padding but no fixed background color
@@ -184,5 +203,8 @@ export const DEFAULT_THEME = {
     advancedFilterInput: "form-control form-control-sm",
     advancedFilterButtonContainer: "px-3 mt-4 d-flex justify-content-start",
     advancedFilterButton: "btn btn-primary btn-sm px-4 py-2 fw-semibold",
+
+    scrollWrapperClass: "overflow-y-auto",
+    scrollLoaderClass: "text-center py-2 small text-muted",
   },
 };

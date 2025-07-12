@@ -98,7 +98,19 @@ export default class DataTable {
     baseTheme = "tailwind",
 
     rangeFilterFields = {},
+
+    infiniteScroll = false,
+    scrollOffset = 150,
+    hidePaginationOnScroll = true,
+    maxScrollPages,
+    scrollWrapperHeight,
   }) {
+    this.infiniteScroll = infiniteScroll;
+    this.scrollOffset = scrollOffset;
+    this.hidePaginationOnScroll = hidePaginationOnScroll;
+    this.maxScrollPages = maxScrollPages;
+    this.scrollWrapperHeight = scrollWrapperHeight;
+
     this.rangeFilterFields = rangeFilterFields;
     // this.theme = {
     //     ...DEFAULT_THEME,
@@ -329,6 +341,7 @@ export default class DataTable {
     this.initSearch();
     this.fetchData();
     this.initPagination();
+    this.initInfiniteScroll();
     this.renderTableHeader();
 
     this.dispatchEvent(DataTableEvents.INIT, {
@@ -1642,11 +1655,6 @@ export default class DataTable {
   // Pagination
   //===================
 
-  /**
-   * Binds click event listeners to the previous and next pagination buttons.
-   * Handles page navigation and triggers data fetching when buttons are clicked.
-   * @return {void}
-   */
   bindPaginationButtons() {
     if (this.prevBtn) {
       // Navigate to the previous page
@@ -1683,13 +1691,6 @@ export default class DataTable {
     }
   }
 
-  /**
-   * Updates all pagination UI elements based on current pagination state.
-   * @param {Object} paginationInfo - Pagination metadata
-   * @param {number} paginationInfo.current_page - Current page number
-   * @param {number} paginationInfo.last_page - Total number of pages
-   * @param {number} paginationInfo.total - Total number of records
-   */
   updatePagination({ current_page, last_page, total }) {
     if (this.pageInfo) {
       // Update page info text
@@ -1731,12 +1732,6 @@ export default class DataTable {
     }
   }
 
-  /**
-   * Updates the pagination controls for a simple pagination type.
-   * @param {number} current_page - The current page number.
-   * @param {number} last_page - The last page number.
-   * @return {void}
-   */
   updateSimplePagination(current_page, last_page) {
     const prevBtn = this.createNavButton("«", current_page > 1, () => {
       const prevPage = this.currentPage;
@@ -1764,18 +1759,7 @@ export default class DataTable {
     this.paginationWrapper.appendChild(nextBtn);
   }
 
-  /**
-   * Updates the pagination controls for a detailed pagination type.
-   * @param {number} current_page - The current page number.
-   * @param {number} last_page - The last page number.
-   * @return {void}
-   */
   updateDetailedPagination(current_page, last_page) {
-    /**
-     * Creates a page button with consistent styling.
-     * @param {number} page - Page number
-     * @returns {HTMLElement} The created button element
-     */
     const addPage = (page) => {
       const btn = document.createElement("button");
       btn.className = `${
@@ -1798,13 +1782,6 @@ export default class DataTable {
       return btn;
     };
 
-    /**
-     * Calculates the start and end page numbers for the pagination UI.
-     * This is done to show at most 5 pages in the UI.
-     * @param {number} current_page - The current page number.
-     * @param {number} last_page - The last page number.
-     * @returns {Object} An object with start and end page numbers.
-     */
     const getStartAndEndPages = () => {
       const startPage = Math.max(1, current_page - 2);
       const endPage = Math.min(last_page, current_page + 2);
@@ -1855,13 +1832,7 @@ export default class DataTable {
       })
     );
   }
-  /**
-   * Creates a navigation button with consistent styling.
-   * @param {string} text - Button text/content
-   * @param {boolean} enabled - Whether the button should be clickable
-   * @param {Function} onClick - Click handler function
-   * @returns {HTMLElement} The created button element
-   */
+
   createNavButton(text, enabled, onClick) {
     const btn = document.createElement("button");
     btn.className = `${this.theme.paginationButton || "btn btn-sm"} ${
@@ -1877,11 +1848,6 @@ export default class DataTable {
     }
     return btn;
   }
-  /**
-   * Creates an ellipsis element for pagination UI.
-   * Used to indicate skipped pages in detailed pagination.
-   * @returns {HTMLElement} The created ellipsis span
-   */
   ellipsis() {
     const span = document.createElement("span");
     span.textContent = "...";
@@ -1904,6 +1870,116 @@ export default class DataTable {
   goToFirstPage() {
     this.goToPage(1);
   }
+
+  //===================
+  // Infinite Scroll Pagination
+  //===================
+
+  initInfiniteScroll() {
+    if (!this.infiniteScroll) return;
+
+    this.infiniteScrollPageCount = 1;
+    this.lastScrollTop = 0;
+    this.infiniteScrollFetching = false;
+
+    // Wrap table in scrollable container if not already
+    this.scrollWrapper = document.createElement("div");
+    this.scrollWrapper.className = this.theme.scrollWrapperClass;
+    this.scrollWrapper.style.height = this.scrollWrapperHeight || "75vh";
+    this.scrollWrapper.id = `${this.tableId}-scroll-wrapper`;
+
+    // Create loading indicator
+    this.scrollLoader = document.createElement("div");
+    this.scrollLoader.className =
+      this.theme.scrollLoaderClass || "text-center py-2 text-sm text-gray-500";
+    this.scrollLoader.textContent = "Loading more...";
+    this.scrollLoader.style.display = "none";
+
+    // Insert scroll wrapper and loader
+    this.table.parentNode.insertBefore(this.scrollWrapper, this.table);
+    this.scrollWrapper.appendChild(this.table);
+    this.scrollWrapper.appendChild(this.scrollLoader);
+
+    const container = this.scrollWrapper || window;
+    const scrollTarget =
+      container === window ? document.documentElement : container;
+
+    const onScroll = () => {
+      if (!this.hasMorePages()) {
+        this.scrollLoader.style.display = "none";
+        if (typeof this.onScrollEnd === "function") this.onScrollEnd();
+        return;
+      }
+
+      const scrollTop =
+        container === window
+          ? window.scrollY || window.pageYOffset
+          : container.scrollTop;
+
+      const scrollHeight = scrollTarget.scrollHeight;
+      const clientHeight = scrollTarget.clientHeight;
+
+      const isScrollingDown = scrollTop > this.lastScrollTop;
+      this.lastScrollTop = scrollTop;
+
+      if (
+        scrollHeight - scrollTop - clientHeight <= this.scrollOffset &&
+        isScrollingDown &&
+        !this.infiniteScrollFetching
+      ) {
+        this.infiniteScrollFetching = true;
+        this.infiniteScrollPageCount++;
+
+        // Stop if max pages reached
+        if (
+          this.maxScrollPages &&
+          this.infiniteScrollPageCount > this.maxScrollPages
+        ) {
+          container.removeEventListener("scroll", onScroll);
+          return;
+        }
+
+        this.scrollLoader.style.display = "block";
+
+        this.currentPage++;
+        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
+          fromPage: this.currentPage - 1,
+          toPage: this.currentPage,
+        });
+
+        this.fetchData().finally(() => {
+          this.infiniteScrollFetching = false;
+          this.scrollLoader.style.display = "none";
+        });
+      }
+    };
+
+    container.addEventListener("scroll", onScroll);
+
+    // Hide pagination UI if configured
+    if (this.hidePaginationOnScroll && this.paginationContainer) {
+      this.paginationContainer.style.display = "none";
+    }
+  }
+
+  //===================
+  // Utility: hasMorePages
+  //===================
+  hasMorePages() {
+    return !this.totalPages || this.currentPage < this.totalPages;
+  }
+
+  //===================
+  // Reset scroll position (optional usage: after table reset or reload)
+  //===================
+  resetScrollPosition() {
+    if (this.scrollWrapper) {
+      this.scrollWrapper.scrollTop = 0;
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   // ==============================
   // EXPORT FUNCTIONALITY SECTION
   // ==============================

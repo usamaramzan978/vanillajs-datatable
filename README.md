@@ -1,6 +1,6 @@
 # vanillajs-datatable
 
-A lightweight, dependency-free, and theme-friendly DataTable built with modern JavaScript — works great with Tailwind CSS or Bootstrap.
+A lightweight, dependency-free, and theme-friendly DataTable alternative to jQuery DataTables built with modern JavaScript — works great with Tailwind CSS, DaisyUI, and Bootstrap.
 
 [![npm version](https://img.shields.io/npm/v/vanillajs-datatable)](https://www.npmjs.com/package/vanillajs-datatable)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/vanillajs-datatable)](https://bundlephobia.com/package/vanillajs-datatable)
@@ -11,7 +11,9 @@ A lightweight, dependency-free, and theme-friendly DataTable built with modern J
 
 ```bash
 npm install vanillajs-datatable
+```
 
+```bash
 import DataTable from "vanillajs-datatable";
 
 const table = new DataTable({
@@ -22,7 +24,7 @@ const table = new DataTable({
 ## Using CDN
 
 ```
-<script src="https://unpkg.com/vanillajs-datatable@1.0.3/dist/index.min.js"></script>
+<script src="https://unpkg.com/vanillajs-datatable@1.0.4/dist/index.min.js"></script>
 <script>
   const table = new DataTable({
     // config options
@@ -34,6 +36,8 @@ const table = new DataTable({
 
 ## Documentation
 
+Full usage examples, themes, and advanced options available at:
+
 [**Full Docs**](https://docs.elegantlaravel.com/)
 
 ## Bundle Size
@@ -42,9 +46,9 @@ VanillaJS DataTable is optimized for performance — all builds are well under t
 
 | File           | Brotli   | Gzip     |
 | -------------- | -------- | -------- |
-| `index.min.js` | 12.71 kB | 14.41 kB |
-| `index.esm.js` | 21.95 kB | 25.63 kB |
-| `index.cjs.js` | 21.98 kB | 25.64 kB |
+| `index.min.js` | 15.23 kB | 17.82 kB |
+| `index.esm.js` | 15.20 kB | 17.79 kB |
+| `index.cjs.js` | 15.27 kB | 17.85 kB |
 
 - **Modern:** Uses Brotli for optimal compression in supported browsers.
 - **Legacy:** Gzip size also stays comfortably under the limit.
@@ -82,7 +86,7 @@ Compression tested using `brotli-size` and `gzip-size`.
 | Package                                   | Purpose                                          |
 | ----------------------------------------- | ------------------------------------------------ |
 | [`tailwindcss`](https://tailwindcss.com/) | Native Tailwind CSS v4+ support                  |
-| [`bootstrap`](https://getbootstrap.com/)  | Basic Bootstrap styling compatibility (optional) |
+| [`bootstrap`](https://getbootstrap.com/)  | Bootstrap styling compatibility (optional) |
 | [`daisyui`](https://daisyui.com/)         | Theme support for DaisyUI components (optional)  |
 
 ## Performance Summary
@@ -103,9 +107,9 @@ VanillaJS DataTable is:
 | Tailwind Support | Native (Tailwind 4) | Possible   | Possible  |
 | License          | MIT                 | MIT        | MIT       |
 
-> ✅ `vanillajs-datatable` includes native Tailwind v4 support with theme-friendly styling out of the box — including DaisyUI and custom themes.
+> 💡 vanillajs-datatable is built for modern projects using Tailwind, DaisyUI, or Bootstrap without bloat.
 
-### 🙌 Thanks
+### Thanks
 
 Built with ❤️ by [Usama](https://github.com/usamaramzan978).  
 Contributions are welcome — feel free to [open an issue](https://github.com/usamaramzan978/vanillajs-datatable/issues) or [submit a PR](https://github.com/usamaramzan978/vanillajs-datatable/pulls)!
@@ -114,7 +118,7 @@ Contributions are welcome — feel free to [open an issue](https://github.com/us
 [![GitHub stars](https://img.shields.io/github/stars/usamaramzan978/vanillajs-datatable)](https://github.com/usamaramzan978/vanillajs-datatable/stargazers)
 [![GitHub forks](https://img.shields.io/github/forks/usamaramzan978/vanillajs-datatable)](https://github.com/usamaramzan978/vanillajs-datatable/network)
 
-> 👉 If you find this useful, **please star the repo** and share it!
+> If you find this useful, **please star the repo** and share it!
 
 ### License
 

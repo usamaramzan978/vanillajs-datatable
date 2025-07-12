@@ -170,13 +170,30 @@ const DEFAULT_THEME = {
     paginationButtonActive: "btn-primary",
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
     paginationEllipsis: "px-2 text-gray-500",
+
+    // Advanced Filters UI Wrapper
+    advancedFilterToggle:
+      "px-4 py-3 flex justify-between items-center cursor-pointer bg-base-200 text-sm font-medium gap-2 hover:bg-base-300 transition-colors duration-200",
+    advancedFilterArrow: "transition-transform duration-300 text-base-content",
+    advancedFilterRow:
+      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-0 px-2 bg-base-100 rounded-box transition-all duration-500 max-h-0 opacity-0 overflow-hidden",
+    advancedFilterDiv: "form-control",
+    advancedFilterLabel: "label-text text-sm mb-1",
+    advancedFilterInputs: "flex gap-2",
+    advancedFilterInput: "input input-sm input-bordered w-full",
+    advancedFilterButtonContainer: "flex items-center justify-start mt-5",
+    advancedFilterButton: "btn btn-primary btn-sm w-40 h-10",
+
+    scrollWrapperClass: "overflow-y-auto",
+    scrollLoaderClass: "text-center py-2 text-sm text-base-content",
   },
   tailwind: {
     controlsContainer:
       "border-b border-dashed border-gray-300 bg-white dark:bg-gray-900 dark:border-gray-700",
     controlsWrapper: "flex flex-wrap items-center justify-between gap-4 p-4",
 
-    controlsLeft: "flex items-center gap-4",
+    controlsLeft:
+      "flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2",
     buttonGroup: "flex flex-wrap items-center gap-2",
 
     perPageSelect:
@@ -195,7 +212,7 @@ const DEFAULT_THEME = {
       "min-w-full table-auto border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden",
     header: "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-white",
     headerCell:
-      "px-4 py-3 text-sm font-semibold text-left tracking-wide whitespace-nowrap",
+      "px-4 py-3 text-sm font-medium text-left tracking-wide whitespace-nowrap",
     headerSticky: "sticky top-0 z-10 bg-white dark:bg-gray-900 shadow",
 
     groupHeaderRow:
@@ -204,7 +221,7 @@ const DEFAULT_THEME = {
 
     filterRow: "bg-gray-50 dark:bg-gray-800 column-filters",
     filterInput:
-      "w-full text-sm border px-2 py-1 rounded column-search bg-white dark:bg-gray-900 dark:border-gray-600 dark:text-white",
+      "w-full pl-3 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary",
 
     body: "bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700",
     row: "hover:bg-blue-50 dark:hover:bg-gray-700 hover:shadow-sm hover:cursor-pointer transition-colors duration-150",
@@ -214,7 +231,7 @@ const DEFAULT_THEME = {
       "bg-yellow-200 dark:bg-yellow-500 text-black dark:text-gray-900 font-semibold rounded px-1",
 
     paginationContainer:
-      "flex justify-between items-center px-4 py-3 border-t border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-b-lg",
+      "flex flex-col sm:flex-row justify-between sm:items-center items-start px-4 py-3 border-t border-gray-300 dark:border-gray-700 bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100 rounded-b-lg",
     paginationInfo: "text-sm text-gray-600 dark:text-gray-400",
     paginationWrapper: "flex gap-1 mt-2",
     paginationButton:
@@ -223,13 +240,33 @@ const DEFAULT_THEME = {
       "bg-blue-600 text-white border-blue-600 cursor-pointer",
     paginationButtonDisabled: "opacity-50 cursor-not-allowed",
     paginationEllipsis: "px-2 text-gray-500 dark:text-gray-400 cursor-default",
-  },
 
+    // Advanced Filters UI Wrapper
+    advancedFilterToggle:
+      "px-4 py-3 flex justify-between items-center cursor-pointer bg-gray-200 dark:bg-gray-900 text-sm font-medium gap-2 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200",
+    advancedFilterArrow:
+      "transform transition-transform duration-300 text-gray-600 dark:text-white",
+    advancedFilterRow:
+      "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 py-0 px-2 bg-gray-100 dark:bg-gray-900 rounded-lg transition-all duration-500 max-h-0 opacity-0 overflow-hidden",
+    advancedFilterDiv: "flex flex-col items-start",
+    advancedFilterLabel:
+      "block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1",
+    advancedFilterInputs: "flex gap-2",
+    advancedFilterInput:
+      "w-full pl-3 pr-3 py-2 text-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-md focus:outline-none focus:ring-2 focus:ring-primary placeholder:font-normal",
+    advancedFilterButtonContainer: "flex items-center justify-start mt-5",
+    advancedFilterButton:
+      "w-40 h-10 cursor-pointer px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md",
+
+    scrollWrapperClass: "overflow-y-auto",
+    scrollLoaderClass: "text-center py-2 text-sm text-gray-500",
+  },
   bootstrap: {
-    controlsContainer: "py-3 border-bottom bg-white px-3",
+    // Container with padding but no fixed background color
+    controlsContainer: "py-3 border-bottom px-3",
+
     controlsWrapper:
       "d-flex flex-wrap justify-content-between align-items-center gap-3",
-
     controlsLeft: "d-flex flex-wrap align-items-center gap-3",
     buttonGroup: "btn-group flex-wrap gap-2",
 
@@ -244,14 +281,14 @@ const DEFAULT_THEME = {
       "btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 rounded",
 
     table: "table table-striped table-hover align-middle mb-0 border",
-    header: "table-light",
+    header: "", // Remove "table-light" to let dark mode work
     headerCell: "text-nowrap",
-    headerSticky: "sticky-top bg-light z-1 shadow-sm",
+    headerSticky: "sticky-top bg-body-tertiary z-1 shadow-sm", // Use context-aware bg
 
-    groupHeaderRow: "bg-dark text-white text-center fw-bold",
+    groupHeaderRow: "bg-secondary text-white text-center fw-bold", // bg-secondary is better than hardcoded bg-dark
     groupHeaderCell: "",
 
-    filterRow: "bg-light-subtle column-filters",
+    filterRow: "bg-body-secondary column-filters", // auto-adapts to dark/light
     filterInput: "form-control form-control-sm column-search",
 
     body: "",
@@ -268,6 +305,22 @@ const DEFAULT_THEME = {
     paginationButtonActive: "btn btn-sm btn-primary active",
     paginationButtonDisabled: "disabled",
     paginationEllipsis: "px-2 text-muted",
+
+    // Advanced Filters UI Wrapper
+    advancedFilterToggle:
+      "cursor-pointer d-flex justify-content-between align-items-center px-3 py-3 cursor-pointer bg-body-secondary fw-medium hover-bg-secondary-subtle transition",
+    advancedFilterArrow: "transition-transform duration-300",
+    advancedFilterRow:
+      "row gy-3 gx-2 py-3 px-3 bg-body-tertiary rounded shadow-sm",
+    advancedFilterDiv: "col-12 col-md-6 col-lg-4 d-flex flex-column",
+    advancedFilterLabel: "form-label mb-1 fw-medium text-body",
+    advancedFilterInputs: "d-flex gap-2",
+    advancedFilterInput: "form-control form-control-sm",
+    advancedFilterButtonContainer: "px-3 mt-4 d-flex justify-content-start",
+    advancedFilterButton: "btn btn-primary btn-sm px-4 py-2 fw-semibold",
+
+    scrollWrapperClass: "overflow-y-auto",
+    scrollLoaderClass: "text-center py-2 small text-muted",
   },
 };
 
@@ -1292,8 +1345,23 @@ class DataTable {
     saveStateDuration = 60 * 60 * 1000, // 1 hour
 
     theme = {}, // default to empty object
-    baseTheme = "daisyui",
+    baseTheme = "tailwind",
+
+    rangeFilterFields = {},
+
+    infiniteScroll = false,
+    scrollOffset = 150,
+    hidePaginationOnScroll = true,
+    maxScrollPages,
+    scrollWrapperHeight,
   }) {
+    this.infiniteScroll = infiniteScroll;
+    this.scrollOffset = scrollOffset;
+    this.hidePaginationOnScroll = hidePaginationOnScroll;
+    this.maxScrollPages = maxScrollPages;
+    this.scrollWrapperHeight = scrollWrapperHeight;
+
+    this.rangeFilterFields = rangeFilterFields;
     // this.theme = {
     //     ...DEFAULT_THEME,
     //     ...theme,
@@ -1303,6 +1371,11 @@ class DataTable {
     this.theme = {
       ...selectedTheme,
       ...theme, // override specific classes
+      framework: baseTheme.includes("bootstrap")
+        ? "bootstrap"
+        : baseTheme.includes("daisyui")
+        ? "daisyui"
+        : "tailwind",
     };
 
     this.data = [];
@@ -1518,6 +1591,7 @@ class DataTable {
     this.initSearch();
     this.fetchData();
     this.initPagination();
+    this.initInfiniteScroll();
     this.renderTableHeader();
 
     this.dispatchEvent(DataTableEvents.INIT, {
@@ -1582,7 +1656,7 @@ class DataTable {
    * Dispatches a 'stateRestored' event after loading.
    */
   loadState() {
-    console.log("Loading state" + this.table);
+    // console.log("Loading state" + this.table);
     const saved = localStorage.getItem(`datatable_${this.table.id}_state`);
     if (!saved) return;
 
@@ -1811,49 +1885,84 @@ class DataTable {
 
   // Method to toggle the loading spinner visibility based on the `loadingSpinner` boolean
   toggleLoadingSpinner(isLoading) {
-    if (!this.enableLoadingSpinner) return;
+    if (!this.enableLoadingSpinner || !this.tableId) return;
+
+    const table = document.getElementById(this.tableId);
+    if (!table) return;
+
+    const tbody = table.querySelector("tbody");
+    if (!tbody) return;
 
     let spinnerContainer = document.getElementById(
       this.LoadingSpinnerContainer
     );
+    this.theme.framework === "tailwind";
+    const isBootstrap = this.theme.framework === "bootstrap";
+    const isDaisyUI = this.theme.framework === "daisyui";
 
     if (!spinnerContainer) {
       // Create overlay container
+
       spinnerContainer = document.createElement("div");
       spinnerContainer.id = this.LoadingSpinnerContainer;
-      spinnerContainer.className =
-        "absolute inset-0 flex items-center justify-center bg-base-100/70 z-50 hidden";
 
-      // Create Daisy UI loading spinner
-      const spinner = document.createElement("span");
-      spinner.className = "loading loading-dots loading-lg";
+      let spinner;
+
+      if (isBootstrap) {
+        spinnerContainer.className =
+          "position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75  d-none";
+        spinner = document.createElement("div");
+        spinner.className = "spinner-border text-primary";
+      } else if (isDaisyUI) {
+        spinnerContainer.className =
+          "absolute inset-0 flex items-center justify-center bg-base-100/70 z-50 hidden";
+        spinner = document.createElement("span");
+        spinner.className = "loading loading-dots loading-lg"; // DaisyUI spinner class
+      } else {
+        spinnerContainer.className =
+          "absolute inset-0 flex items-center justify-center bg-white/70 z-50 hidden";
+        // Create Tailwind/DaisyUI CSS spinner
+        spinner = document.createElement("div");
+        spinner.className =
+          "w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin";
+      }
 
       spinnerContainer.appendChild(spinner);
 
-      // Make table container a positioning context
-      if (!this.table.parentNode.classList.contains("relative")) {
-        this.table.parentNode.classList.add("relative");
+      const tbodyWrapper = tbody.parentNode;
+      if (!tbodyWrapper.classList.contains("relative")) {
+        tbodyWrapper.classList.add("relative");
       }
-      this.table.parentNode.appendChild(spinnerContainer);
+
+      tbodyWrapper.appendChild(spinnerContainer);
     }
 
-    // Clear any existing timeout
     if (this.loadingSpinnerTimeout) {
       clearTimeout(this.loadingSpinnerTimeout);
     }
 
     // Show/hide with optional auto-hide
     if (isLoading) {
-      spinnerContainer.classList.remove("hidden");
+      if (isBootstrap) {
+        spinnerContainer.classList.remove("d-none");
+      } else {
+        spinnerContainer.classList.remove("hidden");
+      }
+
       if (this.loadingSpinnerDuration > 0) {
         this.loadingSpinnerTimeout = setTimeout(() => {
           this.toggleLoadingSpinner(false);
         }, this.loadingSpinnerDuration);
       }
     } else {
-      spinnerContainer.classList.add("hidden");
+      if (isBootstrap) {
+        spinnerContainer.classList.add("d-none");
+      } else {
+        spinnerContainer.classList.add("hidden");
+      }
     }
   }
+
   // ==============================
   // Header Download Buttons
   // ==============================
@@ -2165,13 +2274,24 @@ class DataTable {
   //===================
   // FETCH DATA
   //===================
+  getRangeFilters() {
+    const filters = {};
+    for (const [key] of Object.entries(this.rangeFilterFields)) {
+      const min = document.querySelector(`[data-filter-min="${key}"]`)?.value;
+      const max = document.querySelector(`[data-filter-max="${key}"]`)?.value;
 
-  async fetchData() {
+      if (min || max) {
+        filters[key] = { min, max };
+      }
+    }
+    return filters;
+  }
+
+  async fetchData({ applyRangeFilters = false } = {}) {
     // Show loading spinner immediately when enabled
     if (this.enableLoadingSpinner) {
       this.toggleLoadingSpinner(true);
     }
-
     const params = new URLSearchParams({
       search: this.search,
       sortBy: this.sort,
@@ -2180,6 +2300,9 @@ class DataTable {
       perPage: this.rowsPerPage,
       columnFilters: JSON.stringify(this.columnFilters),
     });
+    if (applyRangeFilters) {
+      params.append("rangeFilters", JSON.stringify(this.getRangeFilters()));
+    }
 
     this.dispatchEvent(DataTableEvents.LOADING, {
       queryParams: params.toString(),
@@ -2273,18 +2396,10 @@ class DataTable {
     }
   }
 
-  /**
-   * Renders the table with current data.
-   * This is an internal method, not meant for public use.
-   * @private
-   */
   _renderTable() {
     // Call the renderTable method with the current data
     this.renderTable(this.data);
   }
-  /**
-   * Renders the table header, including optional group headers and filter inputs.
-   */
   renderTableHeader() {
     if (this.theme?.table) {
       this.table.className = this.theme.table;
@@ -2326,17 +2441,6 @@ class DataTable {
     }
   }
 
-  /**
-   * Renders the group headers for the table, using the `columnGroups` option.
-   * This function assumes that the `columnGroups` option is an array of objects
-   * with keys `key` and `label`, where `key` is the column key and `label` is
-   * the text to display in the group header.
-   *
-   * @param {HTMLTableSectionElement} thead - The table head element to render
-   * into.
-   * @param {DataColumn[]} visibleColumns - The columns to render group headers
-   * for.
-   */
   renderGroupHeaders(thead, visibleColumns) {
     const groupHeaderRow = thead.insertRow();
     groupHeaderRow.className = this.theme.groupHeaderRow || "";
@@ -2380,20 +2484,105 @@ class DataTable {
     }
   }
 
-  /**
-   * Renders the filter inputs for the table, using the `columnFilterFields`
-   * option. This function assumes that the `columnFilterFields` option is an
-   * array of column keys.
-   *
-   * @param {HTMLTableSectionElement} thead - The table head element to render
-   * into.
-   * @param {DataColumn[]} visibleColumns - The columns to render filter inputs
-   * for.
-   */
   renderFilterInputs(thead, visibleColumns) {
     const filterRow = thead.insertRow();
     filterRow.className = this.theme.filterRow || "";
     this.columnFilters = this.columnFilters || {};
+
+    // Range filter
+    if (Object.keys(this.rangeFilterFields || {}).length > 0) {
+      const rangeRow = thead.insertRow();
+      const rangeTh = document.createElement("th");
+      rangeTh.colSpan = 100;
+
+      const wrapper = document.createElement("div");
+      wrapper.className = "w-full";
+
+      // Toggle Header
+      const toggleHeader = document.createElement("div");
+      toggleHeader.className = this.theme.advancedFilterToggle;
+      toggleHeader.innerHTML = `
+        <span class="text-gray-700 dark:text-white">Advanced Filters</span>
+        <svg id="range-toggle-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" class="${this.theme.advancedFilterArrow}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+        </svg>`;
+
+      // Container for filter fields
+      const container = document.createElement("div");
+      container.className = this.theme.advancedFilterRow;
+
+      for (const [field, config] of Object.entries(this.rangeFilterFields)) {
+        const type = config.type === "number" ? "number" : "date";
+        const label = config.label || field;
+
+        const group = document.createElement("div");
+        group.className = this.theme.advancedFilterDiv;
+        const labelEl = document.createElement("label");
+        labelEl.className = this.theme.advancedFilterLabel;
+        labelEl.textContent = label;
+
+        const inputsWrapper = document.createElement("div");
+        inputsWrapper.className = this.theme.advancedFilterInputs;
+
+        const inputMin = document.createElement("input");
+        inputMin.type = type;
+        inputMin.placeholder = config.placeholderMin || "From";
+        inputMin.dataset.filterMin = field;
+        inputMin.className = this.theme.advancedFilterInput;
+
+        const inputMax = document.createElement("input");
+        inputMax.type = type;
+        inputMax.placeholder = config.placeholderMax || "To";
+        inputMax.dataset.filterMax = field;
+        inputMax.className = this.theme.advancedFilterInput;
+
+        inputsWrapper.appendChild(inputMin);
+        inputsWrapper.appendChild(inputMax);
+        group.appendChild(labelEl);
+        group.appendChild(inputsWrapper);
+        container.appendChild(group);
+      }
+
+      // Add submit button
+      const buttonsWrapper = document.createElement("div");
+      buttonsWrapper.className = this.theme.advancedFilterButtonContainer;
+      const submitBtn = document.createElement("button");
+      submitBtn.textContent = "Apply Filters";
+      submitBtn.type = "button";
+      submitBtn.className = this.theme.advancedFilterButton;
+      submitBtn.addEventListener("click", () => {
+        this.fetchData({ applyRangeFilters: true });
+      });
+
+      buttonsWrapper.appendChild(submitBtn);
+      container.appendChild(buttonsWrapper);
+
+      const isTailwind = this.theme.framework === "tailwind";
+      const isBootstrap = this.theme.framework === "bootstrap";
+      this.theme.framework === "daisyui";
+
+      toggleHeader.addEventListener("click", () => {
+        // container.classList.toggle("hidden");
+        if (isTailwind) {
+          container.classList.toggle("max-h-0");
+          container.classList.toggle("opacity-0");
+          container.classList.toggle("max-h-[1000px]");
+          container.classList.toggle("opacity-100");
+          container.classList.toggle("py-0");
+          container.classList.toggle("py-3");
+        }
+        if (isBootstrap) {
+          container.classList.toggle("d-none");
+        }
+        const arrow = toggleHeader.querySelector("#range-toggle-arrow");
+        arrow.classList.toggle("rotate-180");
+      });
+
+      wrapper.appendChild(toggleHeader);
+      wrapper.appendChild(container);
+      rangeTh.appendChild(wrapper);
+      rangeRow.appendChild(rangeTh);
+    }
 
     visibleColumns.forEach((column) => {
       const th = document.createElement("th");
@@ -2411,14 +2600,6 @@ class DataTable {
           this.debounce((e) => {
             this.columnFilters[column.name] = e.target.value;
             this.dispatchEvent(DataTableEvents.FILTER, {
-              /**
-               * @prop {DataColumn} column - The column being filtered
-               * @prop {string} value - The value to filter by
-               * @prop {Object} filters - The full set of column filters
-               * @prop {string} timestamp - The timestamp of the event
-               * @prop {string} tableId - The ID of the table
-               * @prop {number} searchDelay - The debouncing delay
-               */
               column: column,
               value: e.target.value,
               filters: this.columnFilters,
@@ -2437,16 +2618,6 @@ class DataTable {
     });
   }
 
-  /**
-   * Renders the column headers for the table, using the `columns` option.
-   * This function assumes that the `columns` option is an array of objects
-   * with keys `name`, `label`, and optionally `visible`, `group`, `tooltip`.
-   *
-   * @param {HTMLTableSectionElement} thead - The table head element to render
-   * into.
-   * @param {DataColumn[]} visibleColumns - The columns to render headers for.
-   * @param {boolean} hasGroups - Whether the table has column groups.
-   */
   renderColumnHeaders(thead, visibleColumns, hasGroups) {
     const headerRow = thead.insertRow();
 
@@ -2590,7 +2761,11 @@ class DataTable {
       return;
     }
 
-    tbody.className = this.theme.body || ""; // Use tbody theme if provided
+    tbody.className = this.theme.body || "";
+
+    const isTailwind = this.theme.framework === "tailwind";
+    const isBootstrap = this.theme.framework === "bootstrap";
+    this.theme.framework === "daisyui";
 
     rows.forEach((row, rowIndex) => {
       const tr = document.createElement("tr");
@@ -2604,6 +2779,23 @@ class DataTable {
         tr.classList.add(...this.theme.rowClass.split(" "));
       }
 
+      // Add initial hidden/fade classes
+      // Tailwind: fade & move
+      if (isTailwind) {
+        tr.classList.add(
+          "opacity-0",
+          "translate-y-2",
+          "transition-all",
+          "duration-300"
+        );
+      }
+
+      // Bootstrap: fade only (no translate)
+      if (isBootstrap) {
+        tr.classList.add("opacity-0", "transition", "duration-300");
+      }
+
+      // Create and append <td>s
       this.columns.forEach((column) => {
         if (column.visible === false) return;
 
@@ -2613,6 +2805,23 @@ class DataTable {
       });
 
       tbody.appendChild(tr);
+
+      // Animate row with stagger
+      const delay = rowIndex * 50;
+
+      if (isTailwind) {
+        setTimeout(() => {
+          tr.classList.remove("opacity-0", "translate-y-2");
+          tr.classList.add("opacity-100", "translate-y-0");
+        }, delay);
+      }
+
+      if (isBootstrap) {
+        setTimeout(() => {
+          tr.classList.remove("opacity-0");
+          tr.classList.add("opacity-100");
+        }, delay);
+      }
     });
   }
 
@@ -2696,11 +2905,6 @@ class DataTable {
   // Pagination
   //===================
 
-  /**
-   * Binds click event listeners to the previous and next pagination buttons.
-   * Handles page navigation and triggers data fetching when buttons are clicked.
-   * @return {void}
-   */
   bindPaginationButtons() {
     if (this.prevBtn) {
       // Navigate to the previous page
@@ -2737,13 +2941,6 @@ class DataTable {
     }
   }
 
-  /**
-   * Updates all pagination UI elements based on current pagination state.
-   * @param {Object} paginationInfo - Pagination metadata
-   * @param {number} paginationInfo.current_page - Current page number
-   * @param {number} paginationInfo.last_page - Total number of pages
-   * @param {number} paginationInfo.total - Total number of records
-   */
   updatePagination({ current_page, last_page, total }) {
     if (this.pageInfo) {
       // Update page info text
@@ -2785,12 +2982,6 @@ class DataTable {
     }
   }
 
-  /**
-   * Updates the pagination controls for a simple pagination type.
-   * @param {number} current_page - The current page number.
-   * @param {number} last_page - The last page number.
-   * @return {void}
-   */
   updateSimplePagination(current_page, last_page) {
     const prevBtn = this.createNavButton("«", current_page > 1, () => {
       const prevPage = this.currentPage;
@@ -2818,18 +3009,7 @@ class DataTable {
     this.paginationWrapper.appendChild(nextBtn);
   }
 
-  /**
-   * Updates the pagination controls for a detailed pagination type.
-   * @param {number} current_page - The current page number.
-   * @param {number} last_page - The last page number.
-   * @return {void}
-   */
   updateDetailedPagination(current_page, last_page) {
-    /**
-     * Creates a page button with consistent styling.
-     * @param {number} page - Page number
-     * @returns {HTMLElement} The created button element
-     */
     const addPage = (page) => {
       const btn = document.createElement("button");
       btn.className = `${
@@ -2852,13 +3032,6 @@ class DataTable {
       return btn;
     };
 
-    /**
-     * Calculates the start and end page numbers for the pagination UI.
-     * This is done to show at most 5 pages in the UI.
-     * @param {number} current_page - The current page number.
-     * @param {number} last_page - The last page number.
-     * @returns {Object} An object with start and end page numbers.
-     */
     const getStartAndEndPages = () => {
       const startPage = Math.max(1, current_page - 2);
       const endPage = Math.min(last_page, current_page + 2);
@@ -2909,13 +3082,7 @@ class DataTable {
       })
     );
   }
-  /**
-   * Creates a navigation button with consistent styling.
-   * @param {string} text - Button text/content
-   * @param {boolean} enabled - Whether the button should be clickable
-   * @param {Function} onClick - Click handler function
-   * @returns {HTMLElement} The created button element
-   */
+
   createNavButton(text, enabled, onClick) {
     const btn = document.createElement("button");
     btn.className = `${this.theme.paginationButton || "btn btn-sm"} ${
@@ -2931,11 +3098,6 @@ class DataTable {
     }
     return btn;
   }
-  /**
-   * Creates an ellipsis element for pagination UI.
-   * Used to indicate skipped pages in detailed pagination.
-   * @returns {HTMLElement} The created ellipsis span
-   */
   ellipsis() {
     const span = document.createElement("span");
     span.textContent = "...";
@@ -2958,6 +3120,116 @@ class DataTable {
   goToFirstPage() {
     this.goToPage(1);
   }
+
+  //===================
+  // Infinite Scroll Pagination
+  //===================
+
+  initInfiniteScroll() {
+    if (!this.infiniteScroll) return;
+
+    this.infiniteScrollPageCount = 1;
+    this.lastScrollTop = 0;
+    this.infiniteScrollFetching = false;
+
+    // Wrap table in scrollable container if not already
+    this.scrollWrapper = document.createElement("div");
+    this.scrollWrapper.className = this.theme.scrollWrapperClass;
+    this.scrollWrapper.style.height = this.scrollWrapperHeight || "75vh";
+    this.scrollWrapper.id = `${this.tableId}-scroll-wrapper`;
+
+    // Create loading indicator
+    this.scrollLoader = document.createElement("div");
+    this.scrollLoader.className =
+      this.theme.scrollLoaderClass || "text-center py-2 text-sm text-gray-500";
+    this.scrollLoader.textContent = "Loading more...";
+    this.scrollLoader.style.display = "none";
+
+    // Insert scroll wrapper and loader
+    this.table.parentNode.insertBefore(this.scrollWrapper, this.table);
+    this.scrollWrapper.appendChild(this.table);
+    this.scrollWrapper.appendChild(this.scrollLoader);
+
+    const container = this.scrollWrapper || window;
+    const scrollTarget =
+      container === window ? document.documentElement : container;
+
+    const onScroll = () => {
+      if (!this.hasMorePages()) {
+        this.scrollLoader.style.display = "none";
+        if (typeof this.onScrollEnd === "function") this.onScrollEnd();
+        return;
+      }
+
+      const scrollTop =
+        container === window
+          ? window.scrollY || window.pageYOffset
+          : container.scrollTop;
+
+      const scrollHeight = scrollTarget.scrollHeight;
+      const clientHeight = scrollTarget.clientHeight;
+
+      const isScrollingDown = scrollTop > this.lastScrollTop;
+      this.lastScrollTop = scrollTop;
+
+      if (
+        scrollHeight - scrollTop - clientHeight <= this.scrollOffset &&
+        isScrollingDown &&
+        !this.infiniteScrollFetching
+      ) {
+        this.infiniteScrollFetching = true;
+        this.infiniteScrollPageCount++;
+
+        // Stop if max pages reached
+        if (
+          this.maxScrollPages &&
+          this.infiniteScrollPageCount > this.maxScrollPages
+        ) {
+          container.removeEventListener("scroll", onScroll);
+          return;
+        }
+
+        this.scrollLoader.style.display = "block";
+
+        this.currentPage++;
+        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
+          fromPage: this.currentPage - 1,
+          toPage: this.currentPage,
+        });
+
+        this.fetchData().finally(() => {
+          this.infiniteScrollFetching = false;
+          this.scrollLoader.style.display = "none";
+        });
+      }
+    };
+
+    container.addEventListener("scroll", onScroll);
+
+    // Hide pagination UI if configured
+    if (this.hidePaginationOnScroll && this.paginationContainer) {
+      this.paginationContainer.style.display = "none";
+    }
+  }
+
+  //===================
+  // Utility: hasMorePages
+  //===================
+  hasMorePages() {
+    return !this.totalPages || this.currentPage < this.totalPages;
+  }
+
+  //===================
+  // Reset scroll position (optional usage: after table reset or reload)
+  //===================
+  resetScrollPosition() {
+    if (this.scrollWrapper) {
+      this.scrollWrapper.scrollTop = 0;
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
   // ==============================
   // EXPORT FUNCTIONALITY SECTION
   // ==============================
