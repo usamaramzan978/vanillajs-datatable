@@ -39,11 +39,6 @@ export default class DataTable {
     dataSrc = null,
     saveState = false,
 
-    selectable = false,
-    selectMode = "single",
-    selectionClass = "selected",
-    selectionBgClass = "bg-red-100",
-
     keyboardNav = false,
     // Element IDs
     searchInputId = null,
@@ -63,69 +58,111 @@ export default class DataTable {
 
     // Features
     paginationType = "detailed",
-    enableSort = true,
+    sortable = true,
     sortableColumns = [],
     searchDelay = 300, // new
 
-    loadingSpinnerId = null, // Default loading spinner ID
-    loadingSpinner = false, // Whether to show the loading spinner by default
-    loadingSpinnerDuration = 0, // Default loading spinner duration (in milliseconds)
+    reset = true,
+    reload = true,
 
-    resetBtn = true,
-    reloadBtn = true,
-    printBtn = true,
-    exportBtn = true,
-    downloadCsvBtn = true,
-    pdfBtn = true,
-    perPageBtn = true,
-    searchBtn = true,
-    paginationBtn = true,
+    perPageSelector = true,
+    searchable = true,
+    pagination = true,
 
-    columnFilterFields = null, // Array of column names to filter (for default inputs)
+    filterableColumns = null, // Array of column names to filter (for default inputs)
     columnGroups = [], // Add default empty array here
     stickyHeader = false,
 
-    chunkSize = {
-      print: 100,
-      pdf: 50,
-      excel: 50,
-      csv: 50,
-    },
-    enableCustomColumnFilter = false,
+    columnFiltering = false,
     saveStateDuration = 60 * 60 * 1000, // 1 hour
 
     theme = {}, // default to empty object
     baseTheme = "tailwind",
 
+    event = {},
     rangeFilterFields = {},
-
-    infiniteScroll = false,
-    scrollOffset = 150,
-    hidePaginationOnScroll = true,
-    maxScrollPages,
-    scrollWrapperHeight,
+    loading = {
+      show: false,
+      elementId: null,
+      delay: 1000,
+    },
+    selection = {
+      enabled: false,
+      mode: "single", // 'single'|'multiple'
+      rowClass: "row-selected",
+      backgroundClass: "bg-blue-100",
+    },
+    infiniteScroll = {
+      enabled: false,
+      scrollOffset: 10,
+      hidePaginationOnScroll: true,
+      maxScrollPages: 1000,
+      scrollWrapperHeight: "80vh",
+    },
+    exportable = {
+      enabled: true,
+      buttons: {
+        print: true,
+        excel: true,
+        csv: true,
+        pdf: true,
+      },
+      title: {
+        print: "Printable Report",
+        pdf: "PDF Export",
+        excel: "Excel Export",
+        csv: "CSV Export",
+      },
+      chunkSize: {
+        print: 50,
+        pdf: 50,
+        excel: 50,
+        csv: 50,
+      },
+      pdfOptions: {
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+        theme: "grid",
+        watermark: {
+          text: null,
+          opacity: 0.1,
+          angle: 45,
+        },
+      },
+      fileName: {
+        print: "print_report",
+        pdf: "pdf_export",
+        excel: "excel_export",
+        csv: "csv_export",
+      },
+      footer: true,
+    },
   }) {
-    this.infiniteScroll = infiniteScroll;
-    this.scrollOffset = scrollOffset;
-    this.hidePaginationOnScroll = hidePaginationOnScroll;
-    this.maxScrollPages = maxScrollPages;
-    this.scrollWrapperHeight = scrollWrapperHeight;
+    const infiniteScrollConfig = {
+      enabled: infiniteScroll?.enabled !== false,
+      scrollOffset: infiniteScroll?.scrollOffset,
+      hidePaginationOnScroll: infiniteScroll?.hidePaginationOnScroll,
+      maxScrollPages: infiniteScroll?.maxScrollPages,
+      scrollWrapperHeight: infiniteScroll?.scrollWrapperHeight,
+    };
+    this.infiniteScroll = infiniteScrollConfig.enabled;
+    this.scrollOffset = infiniteScrollConfig.scrollOffset;
+    this.hidePaginationOnScroll = infiniteScrollConfig.hidePaginationOnScroll;
+    this.maxScrollPages = infiniteScrollConfig.maxScrollPages;
+    this.scrollWrapperHeight = infiniteScrollConfig.scrollWrapperHeight;
 
     this.rangeFilterFields = rangeFilterFields;
-    // this.theme = {
-    //     ...DEFAULT_THEME,
-    //     ...theme,
-    // };
-    const selectedTheme = DEFAULT_THEME[baseTheme] || DEFAULT_THEME.daisyui;
 
+    const selectedTheme = DEFAULT_THEME[baseTheme] || DEFAULT_THEME.tailwind;
     this.theme = {
       ...selectedTheme,
       ...theme, // override specific classes
       framework: baseTheme.includes("bootstrap")
         ? "bootstrap"
-        : baseTheme.includes("daisyui")
-        ? "daisyui"
-        : "tailwind",
+        : baseTheme.includes("tailwind")
+        ? "tailwind"
+        : "daisyui",
     };
 
     this.data = [];
@@ -137,7 +174,7 @@ export default class DataTable {
     this.sort = defaultSort;
     this.order = defaultOrder;
     this.search = "";
-    this.chunkSize = chunkSize;
+    // this.chunkSize = chunkSize;
     this.currentPage = 1;
     this.dataSrc = dataSrc || "data"; // Default to 'data' if not provided
     this.enableSaveState = saveState;
@@ -153,8 +190,8 @@ export default class DataTable {
     //     : null;
 
     this.paginationType = paginationType;
-    this.enableSort = enableSort;
-    this.paginationBtn = paginationBtn;
+    this.sortable = sortable;
+    this.pagination = pagination;
     // this.sortableColumns = sortableColumns;
     this.sortableColumns = Array.isArray(sortableColumns)
       ? sortableColumns
@@ -163,62 +200,116 @@ export default class DataTable {
     this.columnFilters = {};
     this.columns = columns;
     this.searchDebounceTimer = null;
-    this.enableLoadingSpinner = loadingSpinner;
+
+    const loadingConfig = {
+      show: loading?.show !== false,
+      elementId: loading?.elementId,
+      delay: loading?.delay,
+    };
+    this.enableLoadingSpinner = loadingConfig.show;
     this.LoadingSpinnerContainer =
-      loadingSpinnerId || `${tableId}-loading-spinner`;
-    this.loadingSpinnerDuration = loadingSpinnerDuration;
+      loadingConfig.elementId || `${tableId}-loading-spinner`;
+    this.loadingDelay = loadingConfig.delay;
 
     this.columnGroups = columnGroups || [];
     this.stickyHeader = stickyHeader;
 
-    this.enableCustomColumnFilter = enableCustomColumnFilter;
+    this.columnFiltering = columnFiltering;
 
     // Button configuration
+    this.exportable = {
+      enabled: exportable.enabled !== false, // default true unless explicitly false
+      buttons: {
+        print: exportable.buttons?.print !== false,
+        excel: exportable.buttons?.excel !== false,
+        csv: exportable.buttons?.csv !== false,
+        pdf: exportable.buttons?.pdf === true, // default false unless explicitly true
+        ...exportable.buttons,
+      },
+      title: {
+        print: exportable.title?.print || "Printable Report",
+        pdf: exportable.title?.pdf || "PDF Export",
+        excel: exportable.title?.excel || "Excel Export",
+        csv: exportable.title?.csv || "Csv Export",
+        ...exportable.title,
+      },
+      chunkSize: {
+        print: exportable.chunkSize?.print || 100,
+        pdf: exportable.chunkSize?.pdf || 100,
+        excel: exportable.chunkSize?.excel || 100,
+        csv: exportable.chunkSize?.csv || 100,
+        ...exportable.chunkSize,
+      },
+      fileName: {
+        print: exportable.fileName?.print || "report",
+        pdf: exportable.fileName?.pdf || "pdf_export",
+        excel: exportable.fileName?.excel || "excel_export",
+        csv: exportable.fileName?.csv || "csv_export",
+        ...exportable.fileName,
+      },
+      watermark: {
+        text: exportable.pdfOptions.watermark?.text || "Company Confidential",
+        opacity: exportable.pdfOptions.watermark?.opacity || 0.1,
+        angle: exportable.pdfOptions.watermark?.angle || 45,
+        ...exportable.pdfOptions.watermark,
+      },
+      pdfOptions: {
+        orientation: exportable.pdfOptions?.orientation || "portrait",
+        unit: exportable.pdfOptions?.unit || "mm",
+        format: exportable.pdfOptions?.format || "a4",
+        theme: exportable.pdfOptions?.theme || "grid",
+        ...exportable.pdfOptions,
+      },
+      footer: exportable.footer !== false, // default true unless explicitly false
+    };
+    this.chunkSize = this.exportable.chunkSize;
+
     this.buttonConfig = {
       reset: {
         id: resetBtnId || `${tableId}-reset-button`,
-        enabled: resetBtn,
+        enabled: reset,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-ccw-icon lucide-rotate-ccw"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`,
         text: "Reset",
       },
       reload: {
         id: reloadBtnId || `${tableId}-reload-button`,
-        enabled: reloadBtn,
+        enabled: reload,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw-icon lucide-refresh-ccw"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>`,
         text: "Reload",
       },
       print: {
         id: printBtnId || `${tableId}-print-button`,
-        enabled: printBtn,
+        enabled: this.exportable.enabled && this.exportable.buttons.print,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-printer-check-icon lucide-printer-check"><path d="M13.5 22H7a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v.5"/><path d="m16 19 2 2 4-4"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/></svg>`,
         text: "Print",
       },
       export: {
         id: exportBtnId || `${tableId}-export-button`,
-        enabled: exportBtn,
+        enabled: this.exportable.enabled && this.exportable.buttons.excel,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-squares-exclude-icon lucide-squares-exclude"><path d="M16 12v2a2 2 0 0 1-2 2H9a1 1 0 0 0-1 1v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2h0"/><path d="M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v3a1 1 0 0 1-1 1h-5a2 2 0 0 0-2 2v2"/></svg>`,
         text: "Excel",
       },
       downloadCsv: {
         id: downloadCsvBtnId || `${tableId}-download-csv-button`,
-        enabled: downloadCsvBtn,
+        enabled: this.exportable.enabled && this.exportable.buttons.csv,
+
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-check2-icon lucide-file-check-2"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m3 15 2 2 4-4"/></svg>`,
         text: "CSV",
       },
       pdf: {
         id: pdfBtnId || `${tableId}-download-pdf-button`,
-        enabled: pdfBtn,
+        enabled: this.exportable.enabled && this.exportable.buttons.pdf,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file-text-icon lucide-file-text"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>`,
         text: "PDF",
       },
       perPageSelect: {
         id: perPageSelectId || `${tableId}-per-page`,
-        enabled: perPageBtn,
+        enabled: perPageSelector,
         text: "Perpage",
       },
       search: {
         id: searchInputId || `${tableId}-search-input`,
-        enabled: searchBtn,
+        enabled: searchable,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>`,
         text: "Search",
       },
@@ -247,16 +338,23 @@ export default class DataTable {
       },
     };
 
-    this.columnFilterFields = columnFilterFields;
+    this.filterableColumns = filterableColumns;
 
-    // Initialize selectable features PROPERLY
+    const selectionConfig = {
+      selectable: selection?.enabled !== false,
+      selectMode: selection?.mode || "single",
+      selectionClass: selection?.rowClass || "row-selected",
+      selectionBgClass: selection?.backgroundClass || "bg-blue-100",
+    };
+
     this.selectable = new Selectable(this.table, {
-      selectable,
-      selectMode,
-      selectionClass,
-      selectionBgClass,
+      selectable: selectionConfig.selectable,
+      selectMode: selectionConfig.selectMode,
+      selectionClass: selectionConfig.selectionClass,
+      selectionBgClass: selectionConfig.selectionBgClass,
       baseTheme,
     });
+
     // Public Selectable methods
     this.getSelectedIds = () => this.selectable.getSelectedIds();
     this.clearSelection = () => this.selectable.clearSelection();
@@ -311,25 +409,6 @@ export default class DataTable {
     this.init();
   }
 
-  // Public Export methods
-  exportJSON(filename = "table-data.json") {
-    exportJSON(this.data, filename);
-  }
-  downloadSelectedJSON(filename = "selected-data.json") {
-    const selectedIds = this.getSelectedIds();
-
-    if (selectedIds.length === 0) {
-      alert("Please select at least one row to export.");
-      return;
-    }
-
-    const selectedData = this.data.filter((row) =>
-      selectedIds.includes(String(row.id))
-    );
-
-    exportJSON(selectedData, filename);
-  }
-
   init() {
     if (this.saveState) {
       this.loadState(); // Load saved state early before fetchData()
@@ -349,12 +428,31 @@ export default class DataTable {
         url: this.url,
         columns: this.columns,
         features: {
-          sorting: this.enableSort,
-          pagination: this.paginationBtn,
+          sorting: this.sortable,
+          pagination: this.pagination,
           search: this.search,
         },
       },
     });
+  }
+
+  // Public Export methods
+  exportJSON(filename = "table-data.json") {
+    exportJSON(this.data, filename);
+  }
+  downloadSelectedJSON(filename = "selected-data.json") {
+    const selectedIds = this.getSelectedIds();
+
+    if (selectedIds.length === 0) {
+      alert("Please select at least one row to export.");
+      return;
+    }
+
+    const selectedData = this.data.filter((row) =>
+      selectedIds.includes(String(row.id))
+    );
+
+    exportJSON(selectedData, filename);
   }
 
   dispatchEvent(name, detail = {}) {
@@ -445,16 +543,17 @@ export default class DataTable {
     if (this.buttonConfig.reload.enabled) {
       this.bindReloadButton();
     }
-    if (this.buttonConfig.print.enabled) {
+    // Update these to check both exportable.enabled and specific button enabled state
+    if (this.exportable.enabled && this.buttonConfig.print.enabled) {
       this.bindPrintButton();
     }
-    if (this.buttonConfig.export.enabled) {
+    if (this.exportable.enabled && this.buttonConfig.export.enabled) {
       this.bindExportButton();
     }
-    if (this.buttonConfig.downloadCsv.enabled) {
+    if (this.exportable.enabled && this.buttonConfig.downloadCsv.enabled) {
       this.bindDownloadCsvButton();
     }
-    if (this.buttonConfig.pdf.enabled) {
+    if (this.exportable.enabled && this.buttonConfig.pdf.enabled) {
       this.bindPdfButton();
     }
     if (this.buttonConfig.perPageSelect.enabled) {
@@ -463,7 +562,7 @@ export default class DataTable {
   }
 
   initPagination() {
-    if (!this.paginationBtn) return;
+    if (!this.pagination) return;
 
     this.paginationConfig = {
       previous: {
@@ -633,7 +732,7 @@ export default class DataTable {
     }
   }
 
-  // Method to toggle the loading spinner visibility based on the `loadingSpinner` boolean
+  // Method to toggle the loading spinner visibility based on the `showLoading` boolean
   toggleLoadingSpinner(isLoading) {
     if (!this.enableLoadingSpinner || !this.tableId) return;
 
@@ -699,10 +798,10 @@ export default class DataTable {
         spinnerContainer.classList.remove("hidden");
       }
 
-      if (this.loadingSpinnerDuration > 0) {
+      if (this.loadingDelay > 0) {
         this.loadingSpinnerTimeout = setTimeout(() => {
           this.toggleLoadingSpinner(false);
-        }, this.loadingSpinnerDuration);
+        }, this.loadingDelay);
       }
     } else {
       if (isBootstrap) {
@@ -714,13 +813,9 @@ export default class DataTable {
   }
 
   // ==============================
-  // Header Download Buttons
+  // Binds Header Buttons
   // ==============================
 
-  // Binds the reset button's click event to the `resetTable` method
-  // @method bindResetButton
-  // @return {void}
-  //
   bindResetButton() {
     const button = document.getElementById(this.buttonConfig.reset.id);
     if (button) {
@@ -728,11 +823,6 @@ export default class DataTable {
     }
   }
 
-  /**
-   * Reset the table to its initial state.
-   * @method resetTable
-   * @return {void}
-   */
   resetTable() {
     // Reset search input
     this.search = "";
@@ -768,12 +858,6 @@ export default class DataTable {
     this.fetchData();
   }
 
-  /**
-   * Bind the reload button click event to the `reloadTable` method.
-   * This method dispatches the `reload` event and refetches the data.
-   * @method bindReloadButton
-   * @return {void}
-   */
   bindReloadButton() {
     const reloadButton = document.getElementById(this.buttonConfig.reload.id);
     if (!reloadButton) return;
@@ -784,76 +868,33 @@ export default class DataTable {
     });
   }
 
-  /**
-   * Bind the export button's click event to the `exportToExcel` method.
-   * @method bindExportButton
-   * @return {void}
-   */
   bindExportButton() {
     const button = document.getElementById(this.buttonConfig.export.id);
-
     if (!button) return;
 
-    /**
-     * Export the table data to an Excel spreadsheet when the button is clicked.
-     * This event is typically used to trigger the export process.
-     * @event export
-     */
     button.addEventListener("click", () => {
       this.dispatchEvent(DataTableEvents.EXPORT);
       this.exportToExcel();
     });
   }
 
-  /**
-   * Bind the download CSV button's click event to the `downloadCSV` method.
-   * This event is typically used to trigger the download process.
-   * @method bindDownloadCsvButton
-   * @return {void}
-   */
   bindDownloadCsvButton() {
     const button = document.getElementById(this.buttonConfig.downloadCsv.id);
     if (button) {
-      /**
-       * Trigger the download of the table data in CSV format.
-       * This event is dispatched when the button is clicked.
-       * @event downloadCSV
-       */
       button.addEventListener("click", () => this.downloadCSV());
     }
   }
 
-  /**
-   * Bind the print button's click event to the `printTable` method.
-   * @method bindPrintButton
-   * @return {void}
-   */
   bindPrintButton() {
     const button = document.getElementById(this.buttonConfig.print.id);
-
     if (button) {
-      /**
-       * Trigger the printing of the table when the button is clicked.
-       * This event is dispatched when the button is clicked.
-       * @event print
-       */
       button.addEventListener("click", () => this.printTable());
     }
   }
 
-  /**
-   * Bind the PDF button's click event to the `downloadPdf` method.
-   * @method bindPdfButton
-   * @return {void}
-   */
   bindPdfButton() {
     const button = document.getElementById(this.buttonConfig.pdf.id);
     if (button) {
-      /**
-       * Trigger the download of the table data in PDF format.
-       * This event is dispatched when the button is clicked.
-       * @event downloadPdf
-       */
       button.addEventListener("click", () => this.downloadPdf());
     }
   }
@@ -1090,7 +1131,7 @@ export default class DataTable {
         this.renderTable(this.data);
       }
 
-      if (this.paginationBtn) {
+      if (this.pagination) {
         this.updatePagination(json);
       }
     } catch (error) {
@@ -1107,7 +1148,7 @@ export default class DataTable {
     } finally {
       // Always hide spinner when done
       // Only auto-hide if no duration was set
-      if (this.loadingSpinnerDuration <= 0) {
+      if (this.loadingDelay <= 0) {
         this.toggleLoadingSpinner(false);
       }
     }
@@ -1170,6 +1211,7 @@ export default class DataTable {
 
     // Filter out columns that are not visible
     const visibleColumns = this.columns.filter((c) => c.visible !== false);
+
     const hasGroups = this.columnGroups?.length > 0;
 
     // Render group headers if applicable
@@ -1178,7 +1220,7 @@ export default class DataTable {
     }
 
     // Render filter inputs if applicable
-    if (this.enableCustomColumnFilter) {
+    if (this.columnFiltering) {
       this.renderFilterInputs(thead, visibleColumns);
     }
 
@@ -1338,7 +1380,7 @@ export default class DataTable {
       const th = document.createElement("th");
       th.className = this.theme.headerCell || "";
 
-      if (this.columnFilterFields.includes(column.name)) {
+      if (this.filterableColumns.includes(column.name)) {
         const input = document.createElement("input");
         input.type = "search";
         input.placeholder = `Filter ${column.label}`;
@@ -1498,10 +1540,6 @@ export default class DataTable {
     `;
   }
 
-  /**
-   * Renders the table body with the provided rows.
-   * @param {Array<Object>} rows
-   */
   renderTable(rows) {
     const tbody = this.table.querySelector("tbody") || this.createTBody();
     tbody.innerHTML = "";
@@ -1574,11 +1612,6 @@ export default class DataTable {
       }
     });
   }
-
-  /**
-   * Creates a new table body element and appends it to the table.
-   * @returns {HTMLTableSectionElement} The new table body element
-   */
   createTBody() {
     const tbody = document.createElement("tbody");
     tbody.id = "table-body";
@@ -1591,15 +1624,6 @@ export default class DataTable {
     this.table.appendChild(tbody);
     return tbody;
   }
-  /**
-   * Renders a table cell based on the provided row, column, and rowIndex.
-   * Applies column-specific classes, and custom renderers if provided.
-   * @param {HTMLTableCellElement} td The table cell element to render.
-   * @param {Object} row The row object containing the cell's value.
-   * @param {Object} column The column object containing the cell's configuration.
-   * @param {Number} rowIndex The index of the row in the table.
-   * @return {void}
-   */
   renderCell(td, row, column, rowIndex) {
     const value = row[column.name];
     td.dataset.column = column.name;
@@ -1770,15 +1794,22 @@ export default class DataTable {
           : ""
       }`;
       btn.textContent = page;
-      btn.addEventListener("click", () => {
-        const prevPage = this.currentPage;
-        this.currentPage = page;
-        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-          fromPage: prevPage,
-          toPage: this.currentPage,
+
+      // Only attach click if it's not the current page
+      if (page !== this.currentPage) {
+        btn.addEventListener("click", () => {
+          const prevPage = this.currentPage;
+          this.currentPage = page;
+          this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
+            fromPage: prevPage,
+            toPage: this.currentPage,
+          });
+          this.fetchData();
         });
-        this.fetchData();
-      });
+      } else {
+        btn.disabled = true; // optional: disable active page button
+      }
+
       return btn;
     };
 
@@ -1864,9 +1895,6 @@ export default class DataTable {
     this.fetchData();
   }
 
-  /**
-   * Navigates to first page
-   */
   goToFirstPage() {
     this.goToPage(1);
   }
@@ -1885,7 +1913,7 @@ export default class DataTable {
     // Wrap table in scrollable container if not already
     this.scrollWrapper = document.createElement("div");
     this.scrollWrapper.className = this.theme.scrollWrapperClass;
-    this.scrollWrapper.style.height = this.scrollWrapperHeight || "75vh";
+    this.scrollWrapper.style.height = this.scrollWrapperHeight;
     this.scrollWrapper.id = `${this.tableId}-scroll-wrapper`;
 
     // Create loading indicator
@@ -1961,17 +1989,9 @@ export default class DataTable {
       this.paginationContainer.style.display = "none";
     }
   }
-
-  //===================
-  // Utility: hasMorePages
-  //===================
   hasMorePages() {
     return !this.totalPages || this.currentPage < this.totalPages;
   }
-
-  //===================
-  // Reset scroll position (optional usage: after table reset or reload)
-  //===================
   resetScrollPosition() {
     if (this.scrollWrapper) {
       this.scrollWrapper.scrollTop = 0;
@@ -1990,12 +2010,23 @@ export default class DataTable {
   // handled in the corresponding methods (e.g., exportToExcel, downloadCSV).
   // Make sure that export fetches all data, not just the current page, for full exports.
   // ==============================
-  getChunkSize(type) {
-    // Return chunk size for type or fallback to a safe default
-    if (this.chunkSize && this.chunkSize[type]) {
-      return this.chunkSize[type];
-    }
-    return 100; // fallback chunk size if not set
+
+  getExportableColumns(type = "all") {
+    return this.columns.filter((col) => {
+      if (col.visible === false) return false;
+
+      // If per-export-type control is defined (object like { print: false, csv: true })
+      if (col.export && typeof col.export === "object") {
+        return col.export[type] !== false;
+      }
+
+      // Respect individual type flags
+      if (type === "print" && col.printable === false) return false;
+      if (["csv", "excel", "pdf"].includes(type) && col.exportable === false)
+        return false;
+
+      return true; // default: exportable
+    });
   }
 
   // ==============================
@@ -2008,20 +2039,21 @@ export default class DataTable {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Sheet1");
 
-      const visibleColumns = this.columns.filter(
-        (col) => col.visible !== false
-      );
+      const visibleColumns = this.getExportableColumns("excel");
+
       worksheet.addRow(visibleColumns.map((col) => col.label || col.name));
 
+      const exportableExcelConfig = {
+        fileName: this.exportable.fileName.print,
+        chunkSize: this.exportable.chunkSize.print,
+      };
+
       let page = 1;
-      const chunkSize = this.getChunkSize("excel");
-
-      // Define the maximum records to download
-      const maxExcelRecords = 1000; // Adjust based on your needs
-
+      const chunkSize = exportableExcelConfig.chunkSize;
+      const maxExcelRecords = 100000;
       let totalRowsExported = 0;
-
       let hasMoreData = true;
+
       const exportParams = new URLSearchParams({
         search: this.search,
         sortBy: this.sort,
@@ -2038,17 +2070,25 @@ export default class DataTable {
         exportParams.set("page", page);
         exportParams.set("perPage", currentChunkSize);
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
         const response = await fetch(`${this.url}?${exportParams.toString()}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest", // Laravel expects this
             "X-Requested-For": "export-chunk",
           },
+          signal: controller.signal,
         });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           throw new Error(
-            `Export request failed with status: ${response.status}`
+            `PDF export data request failed with status: ${response.status}`
           );
         }
 
@@ -2086,9 +2126,7 @@ export default class DataTable {
         page++;
       }
 
-      const fileName = `table-export-${new Date()
-        .toISOString()
-        .slice(0, 10)}.xlsx`;
+      const fileName = `${exportableExcelConfig.fileName}.xlsx`;
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -2105,28 +2143,18 @@ export default class DataTable {
       console.log("Excel export completed successfully");
     } catch (error) {
       console.error("Error exporting data:", error);
-      alert("Error exporting data. Please try again.");
-      if (typeof this.exportToExcelFallback === "function") {
-        this.exportToExcelFallback();
-      }
     }
   }
 
   // ==============================
   // EXPORT TO downloadCSV
+  // This method is called by the downloadCSV method to export all data
   // ==============================
 
-  // Improved downloadCSV method to export all data, not just visible rows
   async downloadCSV() {
     try {
-      this.toggleLoadingSpinner(true);
+      const visibleColumns = this.getExportableColumns("csv");
 
-      // Use visible columns only
-      const visibleColumns = this.columns.filter(
-        (col) => col.visible !== false
-      );
-
-      // Create export parameters - similar to the exportToExcel method
       const exportParams = new URLSearchParams({
         search: this.search,
         sortBy: this.sort,
@@ -2137,15 +2165,17 @@ export default class DataTable {
 
       // Create a CSV content builder with headers
       const headers = visibleColumns.map(
-        (col) => `"${(col.label || col.name).replace(/"/g, '""')}"`
+        (col) => `"${(col.name || col.label).replace(/"/g, '""')}"`
       );
+
+      const exportableCsvConfig = {
+        fileName: this.exportable.fileName.print,
+        chunkSize: this.exportable.chunkSize.print,
+      };
+
       let csvContent = headers.join(",") + "\r\n";
-
-      // Process data in chunks to avoid memory issues
       let page = 1;
-      // let chunkSize = 1000; // Process 1000 records at a time
-      const chunkSize = this.getChunkSize("csv");
-
+      const chunkSize = exportableCsvConfig.chunkSize;
       let hasMoreData = true;
       let totalProcessed = 0;
 
@@ -2155,21 +2185,28 @@ export default class DataTable {
         exportParams.set("perPage", chunkSize);
 
         try {
-          // Fetch chunk
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
           const response = await fetch(
             `${this.url}?${exportParams.toString()}`,
             {
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest", // Laravel expects this
                 "X-Requested-For": "export-csv",
               },
+              signal: controller.signal,
             }
           );
 
+          clearTimeout(timeoutId);
+
           if (!response.ok) {
             throw new Error(
-              `CSV export request failed with status: ${response.status}`
+              `PDF export data request failed with status: ${response.status}`
             );
           }
 
@@ -2227,7 +2264,7 @@ export default class DataTable {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `table-data-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `${exportableCsvConfig.fileName}.csv`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -2240,12 +2277,8 @@ export default class DataTable {
 
       // Fallback to current page only if full export fails
       this.downloadCurrentPageCSV();
-    } finally {
-      this.toggleLoadingSpinner(false);
     }
   }
-
-  // Fallback method that downloads only the current page data
   downloadCurrentPageCSV() {
     try {
       if (!this.table) return;
@@ -2296,20 +2329,14 @@ export default class DataTable {
   // ==============================
   // EXPORT TO print
   // ==============================
-
   // Add print functionality to DataTable class
+
   printTable() {
     try {
       this.toggleLoadingSpinner(true);
 
-      // Get current table data and structure
-      const tableId = this.table.id;
-      const title =
-        document.querySelector(`#${tableId} caption`)?.textContent ||
-        "Table Data";
-      const visibleColumns = this.columns.filter(
-        (col) => col.visible !== false
-      );
+      const title = this.exportable.title.print;
+      const visibleColumns = this.getExportableColumns("print");
 
       // Create a new window for printing
       const printWindow = window.open("", "_blank", "height=600,width=800");
@@ -2439,25 +2466,7 @@ export default class DataTable {
             <body>
                 <div class="print-header">
                     <h1 class="print-title">${title}</h1>
-                    <p class="print-subtitle">Data Export</p>
                     <p class="print-meta">Generated on: ${new Date().toLocaleString()}</p>
-                </div>
-
-                <div class="print-filters">
-                    <strong>Filters:</strong>
-                    ${
-                      this.search
-                        ? `Search: "${this.search}"`
-                        : "No search applied"
-                    } |
-                    Sorted by: ${this.sort} (${this.order}) |
-                    ${
-                      Object.keys(this.columnFilters).length > 0
-                        ? `Column filters: ${Object.entries(this.columnFilters)
-                            .map(([col, val]) => `${col}: "${val}"`)
-                            .join(", ")}`
-                        : "No column filters applied"
-                    }
                 </div>
 
                 <div class="loading">Loading data for printing...</div>
@@ -2503,25 +2512,24 @@ export default class DataTable {
       this.toggleLoadingSpinner(false);
     }
   }
-
-  // Method to fetch and render data for printing
   async fetchDataForPrint(printWindow) {
     try {
-      const visibleColumns = this.columns.filter(
-        (col) => col.visible !== false
-      );
+      const visibleColumns = this.getExportableColumns("print");
+
       const printTbody =
         printWindow.document.querySelector("#print-table tbody");
       const loadingDiv = printWindow.document.querySelector(".loading");
 
+      const exportablePrintConfig = {
+        title: this.exportable.title.print,
+        fileName: this.exportable.fileName.print,
+        chunkSize: this.exportable.chunkSize.print,
+        footer: this.exportable.footer,
+      };
+
       // Define the maximum records to print
-      const maxPrintRecords = 5000; // Adjust based on your needs
-
-      // Process data in chunks to avoid memory issues
       let page = 1;
-      // let chunkSize = 1000; // Process 1000 records at a time
-      const chunkSize = this.getChunkSize("print");
-
+      const chunkSize = exportablePrintConfig.chunkSize;
       let hasMoreData = true;
       let totalProcessed = 0;
       let tableContent = "";
@@ -2534,27 +2542,34 @@ export default class DataTable {
         export: "true",
       });
 
-      while (hasMoreData && totalProcessed < maxPrintRecords) {
+      while (hasMoreData) {
         // Update pagination parameters for this chunk
         exportParams.set("page", page);
         exportParams.set("perPage", chunkSize);
 
         try {
-          // Fetch chunk
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
           const response = await fetch(
             `${this.url}?${exportParams.toString()}`,
             {
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest", // Laravel expects this
                 "X-Requested-For": "print",
               },
+              signal: controller.signal,
             }
           );
 
+          clearTimeout(timeoutId);
+
           if (!response.ok) {
             throw new Error(
-              `Print data request failed with status: ${response.status}`
+              `PDF export data request failed with status: ${response.status}`
             );
           }
 
@@ -2603,27 +2618,11 @@ export default class DataTable {
         }
       }
 
-      // Add warning if truncated
-      if (totalProcessed >= maxPrintRecords && hasMoreData) {
-        printWindow.document.querySelector(
-          ".print-subtitle"
-        ).innerHTML += ` <span style="color:red;">(Limited to ${maxPrintRecords} records)</span>`;
-      }
-
       // Update the print window with the data
       if (printTbody) {
         loadingDiv.style.display = "none";
         printTbody.innerHTML = tableContent;
 
-        // Add record count to subtitle
-        const subtitle = printWindow.document.querySelector(".print-subtitle");
-        subtitle.innerHTML += ` (${totalProcessed} records)`;
-
-        // Add date range if available
-        if (this.dateRangeFilter) {
-          const filters = printWindow.document.querySelector(".print-filters");
-          filters.innerHTML += `<br>Date Range: ${this.dateRangeFilter}`;
-        }
         // Automatically print after data is ready
         printWindow.print();
       }
@@ -2632,32 +2631,17 @@ export default class DataTable {
       printWindow.document.querySelector(
         ".loading"
       ).innerHTML = `<div style="color:red;">Error preparing print data: ${error.message}</div>`;
-    } finally {
-      this.toggleLoadingSpinner(false);
     }
   }
 
   // ==============================
   // PDF Download
-  // ==============================
   // The downloadPdf method using jsPDF and autoTable
   // ==============================
-  // PDF Download
-  // ==============================
+
   downloadPdf() {
     try {
-      this.toggleLoadingSpinner(true);
-
-      // Get current table data and structure
-      const tableId = this.table.id;
-      const title =
-        document.querySelector(`#${tableId} caption`)?.textContent ||
-        "Table Data";
-
-      // Filter visible columns
-      const visibleColumns = this.columns.filter(
-        (col) => col.visible !== false
-      );
+      const visibleColumns = this.getExportableColumns("pdf");
 
       // Prepare PDF download parameters
       const exportParams = new URLSearchParams({
@@ -2668,47 +2652,53 @@ export default class DataTable {
         export: "true",
       });
 
-      // Fetch data for PDF
-      this.fetchDataForPdf(title, visibleColumns, exportParams);
+      const exportableConfig = {
+        title: this.exportable.title.pdf || "PDF Export",
+        fileName: this.exportable.fileName.pdf || "datatable.pdf",
+        chunkSize: this.exportable.chunkSize.pdf || 500,
+        footer: this.exportable.footer || false,
+        watermark: this.exportable.watermark || false,
+      };
+
+      // Call fetchDataForPdf with single config object
+      this.fetchDataForPdf(exportableConfig, visibleColumns, exportParams);
     } catch (error) {
       console.error("Error preparing PDF download:", error);
       alert("Error preparing PDF download. Please try again.");
-      this.toggleLoadingSpinner(false);
     }
   }
-
-  // Method to fetch and render data for PDF
-  async fetchDataForPdf(title, visibleColumns, exportParams) {
+  async fetchDataForPdf(config, visibleColumns, exportParams) {
     try {
-      // Define the maximum records to download
-      const maxPdfRecords = 1000; // Adjust based on your needs
+      const { fileName, chunkSize, footer, title } = config;
 
-      // Process data in chunks to avoid memory issues
+      const allData = [];
       let page = 1;
-      // let chunkSize = 1000; // Process 1000 records at a time
-      const chunkSize = this.getChunkSize("pdf");
-
-      let hasMoreData = true;
       let totalProcessed = 0;
-      let allData = [];
+      let hasMoreData = true;
 
-      while (hasMoreData && totalProcessed < maxPdfRecords) {
-        // Update pagination parameters for this chunk
+      while (hasMoreData) {
         exportParams.set("page", page);
         exportParams.set("perPage", chunkSize);
 
         try {
-          // Fetch chunk
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
           const response = await fetch(
             `${this.url}?${exportParams.toString()}`,
             {
               method: "GET",
               headers: {
                 "Content-Type": "application/json",
-                "X-Requested-For": "pdf-export",
+                Accept: "application/json",
+                "X-Requested-With": "XMLHttpRequest", // Laravel expects this
+                "X-Requested-For": "pdf-export", // Optional custom header
               },
+              signal: controller.signal,
             }
           );
+
+          clearTimeout(timeoutId);
 
           if (!response.ok) {
             throw new Error(
@@ -2719,21 +2709,20 @@ export default class DataTable {
           const json = await response.json();
           const dataChunk = json[this.dataSrc] || [];
 
-          // Check if this is the last chunk
-          hasMoreData = dataChunk.length === chunkSize;
+          if (dataChunk.length === 0) {
+            break; // Stop if no more data
+          }
+
           totalProcessed += dataChunk.length;
 
-          // Prepare data for PDF
           const processedChunk = dataChunk.map((row) => {
             const pdfRow = {};
             visibleColumns.forEach((column) => {
               let cellValue = row[column.name] || "";
 
-              // Apply custom render function if it exists and is meant for PDF
               if (column.pdfRender) {
                 cellValue = column.pdfRender(cellValue, row);
               } else if (column.render && column.useRenderForPdf) {
-                // Use the render function
                 cellValue = column.render(cellValue, row);
               }
 
@@ -2743,137 +2732,172 @@ export default class DataTable {
           });
 
           allData.push(...processedChunk);
-
-          // Move to next page
+          // Stop if we received less than the chunk size
+          hasMoreData = dataChunk.length === chunkSize;
           page++;
         } catch (error) {
           console.error("Error fetching data chunk for PDF:", error);
-          hasMoreData = false; // Stop on error
-          throw error; // Rethrow to be caught by outer catch
+          hasMoreData = false;
+          throw error;
         }
       }
 
-      // Generate PDF
-      this.generatePdf(
-        title,
-        visibleColumns,
-        allData,
-        totalProcessed,
-        maxPdfRecords
-      );
-    } catch (error) {
-      console.error("Error preparing PDF data:", error);
-      alert("Error preparing PDF download. Please try again.");
-      this.toggleLoadingSpinner(false);
-    }
-  }
-
-  // Method to generate PDF using jsPDF and autoTable
-  generatePdf(title, visibleColumns, data, totalProcessed, maxPdfRecords) {
-    try {
-      // Create a new PDF document
-      const doc = new jsPDF({
-        orientation: "landscape",
-        unit: "mm",
-        format: "a4",
-      });
-
-      // Set document properties
-      doc.setProperties({
-        title: title,
-        subject: "Data Export",
-        creator: "DataTable Export",
-      });
-
-      // Prepare table headers
-      const headers = visibleColumns.map((col) => col.label || col.name);
-
-      // Prepare table rows
-      const rows = data.map((row) =>
-        headers.map((header) => row[header] || "")
-      );
-
-      // Add title and metadata
-      const pageWidth = doc.internal.pageSize.width;
-      const pageHeight = doc.internal.pageSize.height;
-
-      doc.setFontSize(16);
-      doc.text(title, pageWidth / 2, 15, { align: "center" });
-
-      doc.setFontSize(10);
-      doc.text(
-        `Generated on: ${new Date().toLocaleString()}`,
-        pageWidth - 15,
-        25,
-        { align: "right" }
-      );
-
-      // Add filter information
-      const filterInfo = [
-        `Search: ${this.search || "None"}`,
-        `Sorted by: ${this.sort} (${this.order})`,
-        `Column Filters: ${
-          Object.entries(this.columnFilters).length > 0
-            ? Object.entries(this.columnFilters)
-                .map(([col, val]) => `${col}: "${val}"`)
-                .join(", ")
-            : "None"
-        }`,
-      ];
-
-      doc.setFontSize(9);
-      doc.text(filterInfo.join(" | "), 15, 35);
-
-      // Add date range if available
-      if (this.dateRangeFilter) {
-        doc.text(`Date Range: ${this.dateRangeFilter}`, 15, 42);
+      if (allData.length === 0) {
+        console.warn("No data to export.");
+        return;
       }
 
-      // Generate the table
-      autoTable(doc, {
-        startY: this.dateRangeFilter ? 50 : 42,
-        head: [headers],
-        body: rows,
-        theme: "striped",
-        headStyles: {
-          fillColor: [68, 108, 247], // Blue header similar to print styling
-          textColor: [255, 255, 255],
-        },
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        columnStyles: {
-          // Optionally adjust column widths or styles
-        },
+      this.generatePdf({
+        title,
+        fileName,
+        visibleColumns,
+        data: allData,
+        totalProcessed,
+        footer,
       });
+    } catch (error) {
+      console.error("PDF export failed:", error);
+    }
+  }
+  generatePdf(config) {
+    const { title, fileName, visibleColumns, data, totalProcessed, footer } =
+      config;
 
-      // Add page numbers and total records
-      const totalPages = doc.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
+    // const doc = new jsPDF();
+
+    const pdfExportOptions = {
+      orientation: this.exportable.pdfOptions.orientation,
+      unit: this.exportable.pdfOptions.unit,
+      format: this.exportable.pdfOptions.format,
+      theme: this.exportable.pdfOptions.theme,
+    };
+
+    const doc = new jsPDF({
+      orientation: pdfExportOptions.orientation, //"portrait" or "landscape" (or shortcuts "p" or "l")
+      unit: pdfExportOptions.unit, //"pt" (points), "mm", "cm", "m", "in" or "px".
+      format: pdfExportOptions.format, // a0 - a10, b0 - b10, c0 - c10, dl, letter, government-letter, legal, junior-legal, ledger, tabloid,credit-card
+    });
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    // const body = data.map((row) => {
+    //     return visibleColumns.map((col) => {
+    //         const key = col.name;
+    //         return (
+    //             row[key] ??
+    //             row[col.label] ??
+    //             row[key.toLowerCase().replace(/\s+/g, "_")] ??
+    //             ""
+    //         );
+    //     });
+    // });
+
+    const headers = [visibleColumns.map((col) => col.label || col.name)];
+    const body = data.map((row) => {
+      return visibleColumns.map((col) => row[col.label || col.name] || "");
+    });
+
+    // Add title
+    doc.setFontSize(18);
+    doc.text(title, pageWidth / 2, 14, { align: "center" });
+
+    // Add metadata
+    doc.setFontSize(10);
+    doc.text(
+      `Generated on: ${new Date().toLocaleString()}`,
+      pageWidth - 15,
+      25,
+      { align: "right" }
+    );
+
+    const hasFilters = this.search;
+    let startY = 25;
+
+    if (hasFilters) {
+      const filterInfo = [];
+      if (this.search) filterInfo.push(`Search: ${this.search}`);
+      doc.setFontSize(9);
+      doc.text(filterInfo.join(" | "), 15, startY);
+      startY += 10; // shift down to avoid overlap
+    }
+
+    autoTable(doc, {
+      startY: startY + 5,
+      head: headers,
+      body: body,
+      theme: pdfExportOptions.theme,
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+      },
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+      },
+      margin: { top: 20 },
+      didDrawPage: (dataArg) => {
+        const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
+        const totalPages = doc.internal.getNumberOfPages();
+
+        if (this.exportable?.pdfOptions.watermark?.text) {
+          const {
+            text,
+            opacity = 0.1,
+            angle: rawAngle = 90, // allow user input
+          } = this.exportable.pdfOptions.watermark;
+
+          const allowedAngles = [0, 45, 90, 135, 180, 225, 270, 315];
+          const angle = allowedAngles.includes(rawAngle) ? rawAngle : 45;
+
+          // Center of page
+          const centerX = pageWidth / 2;
+          const centerY = pageHeight / 2;
+
+          // Set styles
+          doc.saveGraphicsState?.();
+
+          try {
+            doc.setGState?.(new doc.GState({ opacity }));
+          } catch (e) {
+            doc.setTextColor(200, 200, 200); // fallback
+          }
+
+          doc.setTextColor(150);
+          doc.setFontSize(40);
+          doc.setFont(undefined, "bold");
+
+          // Draw watermark text centered with rotation
+          doc.text(text, centerX, centerY, {
+            align: "center",
+            baseline: "middle",
+            angle: angle,
+          });
+
+          doc.restoreGraphicsState?.();
+        }
+
+        try {
+          doc.setGState(new doc.GState({ opacity: 1 })); // default everywhere else
+        } catch (e) {
+          doc.setTextColor(30); // fallback: dark text
+        }
+        // Footer / pagination
         doc.setFontSize(8);
+        doc.setTextColor(150);
         doc.text(
-          `Page ${i} of ${totalPages} (${totalProcessed} records${
-            totalProcessed >= maxPdfRecords ? " - Truncated" : ""
-          })`,
+          `Page ${pageNumber} of ${totalPages} (${totalProcessed} records)`,
           pageWidth / 2,
           pageHeight - 10,
           { align: "center" }
         );
-      }
 
-      // Save the PDF
-      doc.save(`${title.replace(/\s+/g, "_")}_export.pdf`);
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Error generating PDF. Please ensure jsPDF libraries are loaded.");
-    } finally {
-      this.toggleLoadingSpinner(false);
-    }
+        if (footer && totalProcessed > this.export?.chunkSize?.pdf) {
+          doc.text(footer, 15, pageHeight - 10);
+        }
+      },
+    });
+
+    doc.save(fileName || "export.pdf");
   }
-
-  // ==============================
-  // END EXPORT FUNCTIONALITY SECTION
-  // ==============================
 }

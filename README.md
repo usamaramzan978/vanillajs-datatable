@@ -24,7 +24,7 @@ const table = new DataTable({
 ## Using CDN
 
 ```
-<script src="https://unpkg.com/vanillajs-datatable@1.0.4/dist/index.min.js"></script>
+<script src="https://unpkg.com/vanillajs-datatable@1.0.5/dist/index.min.js"></script>
 <script>
   const table = new DataTable({
     // config options
@@ -93,8 +93,7 @@ Compression tested using `brotli-size` and `gzip-size`.
 
 VanillaJS DataTable is:
 
-- 🪶 Lightweight (under 15 kB minified)
-- 🧩 Framework-agnostic (Vanilla JS)
+- 🪶 Lightweight (under 18 kB minified)
 - 🎨 Easily themeable (Tailwind/Bootstrap)
 - 🚀 Browser-ready and CDN-optimized
 
@@ -102,7 +101,7 @@ VanillaJS DataTable is:
 
 | Feature          | vanillajs-datatable | DataTables | Tabulator |
 | ---------------- | ------------------- | ---------- | --------- |
-| Size (gzip)      | ~14 KB              | 35kb       | 45kb      |
+| Size (gzip)      | ~18 KB              | 35kb       | 45kb      |
 | Dependencies     | None                | jQuery     | None      |
 | Tailwind Support | Native (Tailwind 4) | Possible   | Possible  |
 | License          | MIT                 | MIT        | MIT       |
