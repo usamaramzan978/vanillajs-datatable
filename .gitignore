@@ -4,11 +4,13 @@
 # Build output
 /dist/
 /package/
+/scripts/
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
 
 # OS files
 .DS_Store
@@ -24,3 +26,4 @@ Thumbs.db
 # Misc
 *.log
 vanillajs-datatable-1.0.4.tgz
+*.tgz
