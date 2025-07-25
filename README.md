@@ -5,13 +5,38 @@ A lightweight, dependency-free, and theme-friendly DataTable alternative to jQue
 [![npm version](https://img.shields.io/npm/v/vanillajs-datatable)](https://www.npmjs.com/package/vanillajs-datatable)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/vanillajs-datatable)](https://bundlephobia.com/package/vanillajs-datatable)
 
+![vanillajs-datatable](https://raw.githubusercontent.com/usamaramzan978/vanillajs-datatable/master/.github/preview.gif)
+
+## Features
+
+✅ No dependencies – works without jQuery or any heavy libraries  
+✅ Modern UI – works out of the box with Tailwind CSS, DaisyUI, and Bootstrap  
+✅ Smart search – global + column-wise filters with match highlighting  
+✅ Sortable columns – sort any column client-side  
+✅ Column grouping – group related fields under headers (e.g., "Personal")  
+✅ Custom renderers – use JS to render rich content in cells  
+✅ Responsive pagination – detailed or simple, with per-page selector  
+✅ Export options – export to CSV, Excel, PDF, or Print  
+✅ Custom export settings – title, filename, chunk size, orientation, watermark  
+✅ Infinite scroll – load more records while scrolling, optional  
+✅ Range filtering – filter by min/max for dates or numbers (e.g., age, created_at)  
+✅ Selection support – single or multiple row selection with class toggling  
+✅ Loading state control – customize spinner element and delay  
+✅ Keyboard navigation – move between rows using arrow keys  
+✅ Toggle column visibility – hide/show columns easily in config  
+✅ Custom themes – override any class via theme config  
+✅ Save state (optional) – persist filters/pagination in memory  
+✅ Tiny footprint – only ~18 kB Gzipped, fast and CDN-friendly
+
+> 💡 vanillajs-datatable is built for modern projects using Tailwind, DaisyUI, or Bootstrap without bloat.
+
 ## Installation
 
 ### Using NPM
 
 ```bash
 npm install vanillajs-datatable
-```
+````
 
 ```bash
 import DataTable from "vanillajs-datatable";
@@ -36,77 +61,36 @@ const table = new DataTable({
 
 ## Documentation
 
-Full usage examples, themes, and advanced options available at:
+Full guides, config options, and code examples available at:
 
 [**Full Docs**](https://docs.elegantlaravel.com/)
 
-## Bundle Size
+## Export Options
 
-VanillaJS DataTable is optimized for performance — all builds are well under the 50 kB limit (even compressed):
+Export your table data effortlessly:
+| Format | Library Used |
+| ------ | ---------------------------------------------------------------------------------------------------------- |
+| CSV | Native JS |
+| Excel | [`exceljs`](https://npmjs.com/package/exceljs) |
+| PDF | [`jspdf`](https://npmjs.com/package/jspdf), [`jspdf-autotable`](https://npmjs.com/package/jspdf-autotable) |
+| Print | Clean print preview |
+
+## Bundle Size
 
 | File           | Brotli   | Gzip     |
 | -------------- | -------- | -------- |
 | `index.min.js` | 15.23 kB | 17.82 kB |
 | `index.esm.js` | 15.20 kB | 17.79 kB |
-| `index.cjs.js` | 15.27 kB | 17.85 kB |
 
-- **Modern:** Uses Brotli for optimal compression in supported browsers.
-- **Legacy:** Gzip size also stays comfortably under the limit.
-
-Compression tested using `brotli-size` and `gzip-size`.
-
-## Build System
-
-| Tool                                                                           | Purpose                                                          |
-| ------------------------------------------------------------------------------ | ---------------------------------------------------------------- |
-| [`rollup`](https://rollupjs.org/)                                              | Bundles ES modules into different formats (`esm`, `cjs`, `iife`) |
-| [`@rollup/plugin-terser`](https://www.npmjs.com/package/@rollup/plugin-terser) | Minifies the output for CDN usage `index.min.js`                 |
-
-## Size Measurement
-
-| Tool                                                                                         | Purpose                                     |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| [`size-limit`](https://www.npmjs.com/package/size-limit)                                     | Enforces strict file size limits via CLI    |
-| [`@size-limit/preset-small-lib`](https://www.npmjs.com/package/@size-limit/preset-small-lib) | Configures `size-limit` for small libraries |
-| [`brotli-size`](https://www.npmjs.com/package/brotli-size)                                   | Measures Brotli-compressed file size        |
-| [`gzip-size`](https://www.npmjs.com/package/gzip-size)                                       | Measures Gzip-compressed file size          |
-
-## Optional Export Dependencies
-
-| Package                                                            | Purpose                    |
-| ------------------------------------------------------------------ | -------------------------- |
-| [`jspdf`](https://www.npmjs.com/package/jspdf)                     | Export data as PDF         |
-| [`jspdf-autotable`](https://www.npmjs.com/package/jspdf-autotable) | Table formatting for jsPDF |
-| [`exceljs`](https://www.npmjs.com/package/exceljs)                 | Export table data as Excel |
-
-> These are optional and only loaded if you use export features.
+> Built with `rollup` and compressed using `terser`, `brotli`, and `gzip`. Fast to load, even on slow networks.
 
 ## Theme Support
 
-| Package                                   | Purpose                                          |
-| ----------------------------------------- | ------------------------------------------------ |
-| [`tailwindcss`](https://tailwindcss.com/) | Native Tailwind CSS v4+ support                  |
-| [`bootstrap`](https://getbootstrap.com/)  | Bootstrap styling compatibility (optional) |
-| [`daisyui`](https://daisyui.com/)         | Theme support for DaisyUI components (optional)  |
-
-## Performance Summary
-
-VanillaJS DataTable is:
-
-- 🪶 Lightweight (under 18 kB minified)
-- 🎨 Easily themeable (Tailwind/Bootstrap)
-- 🚀 Browser-ready and CDN-optimized
-
-## Comparison
-
-| Feature          | vanillajs-datatable | DataTables | Tabulator |
-| ---------------- | ------------------- | ---------- | --------- |
-| Size (gzip)      | ~18 KB              | 35kb       | 45kb      |
-| Dependencies     | None                | jQuery     | None      |
-| Tailwind Support | Native (Tailwind 4) | Possible   | Possible  |
-| License          | MIT                 | MIT        | MIT       |
-
-> 💡 vanillajs-datatable is built for modern projects using Tailwind, DaisyUI, or Bootstrap without bloat.
+| Package                                   | Purpose                                         |
+| ----------------------------------------- | ----------------------------------------------- |
+| [`tailwindcss`](https://tailwindcss.com/) | Native Tailwind CSS v4+ support                 |
+| [`bootstrap`](https://getbootstrap.com/)  | Bootstrap styling compatibility (optional)      |
+| [`daisyui`](https://daisyui.com/)         | Theme support for DaisyUI components (optional) |
 
 ### Thanks
 
