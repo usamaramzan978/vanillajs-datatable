@@ -27,3 +27,22 @@ export function setPageSize(size) {
 export function getCurrentPage() {
     return this.currentPage;
 }
+
+// ----------  Navigation ----------
+export function nextPage() {
+    return this.goToPage(this.currentPage + 1);
+}
+export function prevPage() {
+    return this.goToPage(this.currentPage - 1);
+}
+export function firstPage() {
+    return this.goToPage(1);
+}
+export function lastPage() {
+    if (!this.totalPages || this.totalPages < 1) {
+        console.warn("Cannot go to last page: totalPages is not defined");
+        return;
+    }
+
+    return this.goToPage(this.totalPages);
+}

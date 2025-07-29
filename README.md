@@ -27,6 +27,7 @@ A lightweight, dependency-free, and theme-friendly DataTable alternative to jQue
 ✅ Custom themes – override any class via theme config  
 ✅ Save state (optional) – persist filters/pagination in memory  
 ✅ Tiny footprint – only ~18 kB Gzipped, fast and CDN-friendly
+✅ Inline editing - edit any cell client-side without page refresh
 
 > 💡 vanillajs-datatable is built for modern projects using Tailwind, DaisyUI, or Bootstrap without bloat.
 
@@ -36,7 +37,7 @@ A lightweight, dependency-free, and theme-friendly DataTable alternative to jQue
 
 ```bash
 npm install vanillajs-datatable
-````
+```
 
 ```bash
 import DataTable from "vanillajs-datatable";
@@ -49,7 +50,7 @@ const table = new DataTable({
 ## Using CDN
 
 ```
-<script src="https://unpkg.com/vanillajs-datatable@1.0.5/dist/index.min.js"></script>
+<script src="https://unpkg.com/vanillajs-datatable@1.0.6/dist/index.min.js"></script>
 <script>
   const table = new DataTable({
     // config options
@@ -79,8 +80,8 @@ Export your table data effortlessly:
 
 | File           | Brotli   | Gzip     |
 | -------------- | -------- | -------- |
-| `index.min.js` | 15.23 kB | 17.82 kB |
-| `index.esm.js` | 15.20 kB | 17.79 kB |
+| `index.min.js` | 16.81 kB | 18.82 kB |
+| `index.esm.js` | 16.86 kB | 18.79 kB |
 
 > Built with `rollup` and compressed using `terser`, `brotli`, and `gzip`. Fast to load, even on slow networks.
 

@@ -5,15 +5,17 @@ import { DataTableEvents } from "./datatable-events";
 import { KeyboardNavigation } from "./keyboard-navigation";
 import { DEFAULT_THEME } from "./datatable-theme";
 import {
-  loadData,
   getData,
   getRowData,
-  updateRow,
-  deleteRow,
-  addRow,
-  findDataRows,
-  findRowsByFieldContains,
   getRowIndex,
+  getRowsBy, // new
+  findRowsByFieldContains,
+  addRow,
+  addRows, // new
+  updateRow,
+  updateRows, // new
+  deleteRow,
+  deleteRows, // new
   redraw,
 } from "./methods/dataMethods.js";
 
@@ -24,6 +26,10 @@ import {
   goToPage,
   setPageSize,
   getCurrentPage,
+  nextPage,
+  prevPage,
+  firstPage,
+  lastPage,
 } from "./methods/paginationMethods.js";
 
 export default class DataTable {
@@ -79,7 +85,6 @@ export default class DataTable {
     theme = {}, // default to empty object
     baseTheme = "tailwind",
 
-    event = {},
     rangeFilterFields = {},
     loading = {
       show: false,
@@ -154,15 +159,15 @@ export default class DataTable {
 
     this.rangeFilterFields = rangeFilterFields;
 
-    const selectedTheme = DEFAULT_THEME[baseTheme] || DEFAULT_THEME.tailwind;
+    const selectedTheme = DEFAULT_THEME[baseTheme] || DEFAULT_THEME.daisyui;
     this.theme = {
       ...selectedTheme,
       ...theme, // override specific classes
       framework: baseTheme.includes("bootstrap")
         ? "bootstrap"
-        : baseTheme.includes("tailwind")
-        ? "tailwind"
-        : "daisyui",
+        : baseTheme.includes("daisyui")
+        ? "daisyui"
+        : "tailwind",
     };
 
     this.data = [];
@@ -180,14 +185,6 @@ export default class DataTable {
     this.enableSaveState = saveState;
     this.saveStateDuration = saveStateDuration;
     this.updatePagination = this.updatePagination.bind(this);
-
-    // this.prevBtn = prevBtnId ? document.getElementById(prevBtnId) : null;
-    // this.nextBtn = nextBtnId ? document.getElementById(nextBtnId) : null;
-    // this.pageInfo = pageInfoId ? document.getElementById(pageInfoId) : null;
-    // this.infoText = infoTextId ? document.getElementById(infoTextId) : null;
-    // this.paginationWrapper = paginationWrapperId
-    //     ? document.getElementById(paginationWrapperId)
-    //     : null;
 
     this.paginationType = paginationType;
     this.sortable = sortable;
@@ -346,25 +343,6 @@ export default class DataTable {
       selectionClass: selection?.rowClass || "row-selected",
       selectionBgClass: selection?.backgroundClass || "bg-blue-100",
     };
-
-    this.selectable = new Selectable(this.table, {
-      selectable: selectionConfig.selectable,
-      selectMode: selectionConfig.selectMode,
-      selectionClass: selectionConfig.selectionClass,
-      selectionBgClass: selectionConfig.selectionBgClass,
-      baseTheme,
-    });
-
-    // Public Selectable methods
-    this.getSelectedIds = () => this.selectable.getSelectedIds();
-    this.clearSelection = () => this.selectable.clearSelection();
-    this.selectAll = () => this.selectable.selectAll();
-    this.toggleRowSelection = (id, force) =>
-      this.selectable.toggleRowSelection(id, force);
-    this.isSelected = (id) => this.selectable.isSelected(id);
-    this.onSelectionChange = (callback) =>
-      this.selectable.onSelectionChange(callback);
-
     // Then initialize keyboard navigation if enabled
     if (this.keyboardNav) {
       this.keyboardNav.destroy();
@@ -382,29 +360,85 @@ export default class DataTable {
       });
     }
 
-    // Public Core Data methods
-    this.loadData = loadData.bind(this);
+    // Public Core Utility methods
+    this.copyToClipboard = copyToClipboard.bind(this);
+
+    // ---------- Json Export helpers ----------
+    this.exportJSON = () => {
+      exportJSON(this.data);
+    };
+    this.downloadSelectedJSON = () => {
+      const selectedIds = this.getSelectedIds();
+      if (selectedIds.length === 0) {
+        console.error("Please select at least one row to export.");
+        return;
+      }
+      const selectedData = this.data.filter((row) =>
+        selectedIds.includes(String(row.id))
+      );
+
+      exportJSON(selectedData);
+    };
+
+    // ---------- Data CRUD helpers ----------
     this.getData = getData.bind(this);
     this.getRowData = getRowData.bind(this);
-    this.updateRow = updateRow.bind(this);
-    this.deleteRow = deleteRow.bind(this);
-    this.addRow = addRow.bind(this);
-    this.findDataRows = findDataRows.bind(this);
-    this.findRowsByFieldContains = findRowsByFieldContains.bind(this);
     this.getRowIndex = getRowIndex.bind(this);
+    this.getRowsBy = getRowsBy.bind(this);
+    this.findRowsByFieldContains = findRowsByFieldContains.bind(this);
+    this.addRow = addRow.bind(this);
+    this.addRows = addRows.bind(this);
+    this.updateRow = updateRow.bind(this);
+    this.updateRows = updateRows.bind(this);
+    this.deleteRow = deleteRow.bind(this);
+    this.deleteRows = deleteRows.bind(this);
     this.redraw = redraw.bind(this);
+    this.draw = this.redraw;
 
-    // Public Core Sorting methods
+    // ---------- Sorting helpers ----------
     this.setSort = setSort.bind(this);
     this.clearSort = clearSort.bind(this);
 
-    // Public Core Pagination methods
+    // ---------- Pagination helpers ----------
     this.goToPage = goToPage.bind(this);
     this.setPageSize = setPageSize.bind(this);
     this.getCurrentPage = getCurrentPage.bind(this);
+    this.nextPage = nextPage.bind(this);
+    this.prevPage = prevPage.bind(this);
+    this.firstPage = firstPage.bind(this); // if you added it
+    this.lastPage = lastPage.bind(this); // if you added it
 
-    // Public Core Utility methods
-    this.copyToClipboard = copyToClipboard.bind(this);
+    // ---------- Selectable helpers ----------
+    this.selectable = new Selectable(this.table, {
+      selectable: selectionConfig.selectable,
+      selectMode: selectionConfig.selectMode,
+      selectionClass: selectionConfig.selectionClass,
+      selectionBgClass: selectionConfig.selectionBgClass,
+      baseTheme,
+    });
+    this.getSelectedIds = () => this.selectable.getSelectedIds();
+    this.clearSelection = () => this.selectable.clearSelection();
+    this.selectAll = () => this.selectable.selectAll();
+    this.toggleRowSelection = (id, force) =>
+      this.selectable.toggleRowSelection(id, force);
+    this.isSelected = (id) => this.selectable.isSelected(id);
+    this.onSelectionChange = (callback) =>
+      this.selectable.onSelectionChange(callback);
+
+    // 1. Query helpers
+    this.getSelectedRows = () => this.selectable.getSelectedRows();
+    this.getSelectedData = () => this.selectable.getSelectedData();
+    this.getSelectedCount = () => this.selectable.getSelectedCount();
+
+    // 2. Granular selection
+    this.setSelection = (ids) => this.selectable.setSelection(ids);
+    this.invertSelection = () => this.selectable.invertSelection();
+    this.selectRange = (from, to) => this.selectable.selectRange(from, to);
+
+    // 3. Programmatic control
+    this.setSelectable = (flag) => this.selectable.setSelectable(flag);
+    this.setSelectMode = (mode) => this.selectable.setSelectMode(mode);
+    this.destroySelectable = () => this.selectable.destroy();
 
     this.init();
   }
@@ -434,25 +468,6 @@ export default class DataTable {
         },
       },
     });
-  }
-
-  // Public Export methods
-  exportJSON(filename = "table-data.json") {
-    exportJSON(this.data, filename);
-  }
-  downloadSelectedJSON(filename = "selected-data.json") {
-    const selectedIds = this.getSelectedIds();
-
-    if (selectedIds.length === 0) {
-      alert("Please select at least one row to export.");
-      return;
-    }
-
-    const selectedData = this.data.filter((row) =>
-      selectedIds.includes(String(row.id))
-    );
-
-    exportJSON(selectedData, filename);
   }
 
   dispatchEvent(name, detail = {}) {
@@ -1639,6 +1654,47 @@ export default class DataTable {
     // Set the width of the cell
     if (column.width) td.style.width = column.width;
 
+    // ========= INLINE EDITING ==========
+    if (column.editable) {
+      td.classList.add("cursor-pointer");
+
+      td.addEventListener("dblclick", () => {
+        const input = this.createEditableInput(column, value);
+
+        input.addEventListener("blur", () => {
+          this.handleInlineEditSave(input, td, row, column);
+        });
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            input.blur();
+          }
+        });
+
+        td.innerHTML = "";
+        td.appendChild(input);
+        input.focus();
+
+        const originalValue = row[column.name];
+
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Escape") {
+            td.innerHTML = column.render
+              ? column.render(originalValue, row)
+              : originalValue;
+
+            td.classList.remove(
+              "border",
+              "border-yellow-500",
+              "border-red-500",
+              "border-green-500"
+            );
+          }
+        });
+      });
+    }
+    // ===================================
+
     // Custom renderer
     // Ensure rendered is always a string
     let rendered = "";
@@ -1673,6 +1729,90 @@ export default class DataTable {
     }
 
     td.innerHTML = rendered;
+  }
+  createEditableInput(column, value) {
+    let input;
+    const inputClass =
+      column.type === "select"
+        ? this.theme.editableSelect
+        : this.theme.editableInput;
+
+    switch (column.type) {
+      case "select":
+        input = document.createElement("select");
+        (column.options || []).forEach((opt) => {
+          const option = document.createElement("option");
+          option.value = opt;
+          option.textContent = opt;
+          if (opt == value) option.selected = true;
+          input.appendChild(option);
+        });
+        break;
+
+      case "number":
+      case "datetime-local":
+      case "date":
+      case "time":
+      case "text":
+      default:
+        input = document.createElement("input");
+        input.type = column.type || "text";
+        input.value = value ?? "";
+    }
+
+    input.className = inputClass;
+    return input;
+  }
+
+  async handleInlineEditSave(input, td, row, column, rowIndex) {
+    const newValue = input.value;
+    const oldValue = row[column.name];
+
+    if (newValue === oldValue) {
+      td.innerHTML = column.render ? column.render(oldValue, row) : oldValue;
+      return;
+    }
+
+    // Reset previous feedback states
+    td.classList.remove(
+      this.theme.borderSuccess,
+      this.theme.borderError,
+      this.theme.borderLoading
+    );
+
+    // Show loading state
+    td.classList.add("border", this.theme.borderLoading);
+
+    const editHandler = column.onCellEdit || this.options.onCellEdit;
+    if (typeof editHandler !== "function") return;
+
+    try {
+      const result = await editHandler({
+        id: row.id,
+        rowIndex,
+        column,
+        newValue,
+        oldValue,
+        rowData: row,
+      });
+
+      td.innerHTML = column.render ? column.render(newValue, row) : newValue;
+      row[column.name] = newValue;
+
+      td.classList.remove(this.theme.borderLoading);
+      td.classList.add(this.theme.borderSuccess);
+
+      setTimeout(() => td.classList.remove(this.theme.borderSuccess), 1500);
+    } catch (err) {
+      td.innerHTML = column.render ? column.render(oldValue, row) : oldValue;
+
+      td.classList.remove(this.theme.borderLoading);
+      td.classList.add(this.theme.borderError);
+
+      console.error("Inline edit error:", err);
+
+      setTimeout(() => td.classList.remove(this.theme.borderError), 2000);
+    }
   }
 
   //===================
@@ -2558,7 +2698,7 @@ export default class DataTable {
               headers: {
                 "Content-Type": "application/json",
                 Accept: "application/json",
-                "X-Requested-With": "XMLHttpRequest", // Laravel expects this
+                "X-Requested-With": "XMLHttpRequest",
                 "X-Requested-For": "print",
               },
               signal: controller.signal,

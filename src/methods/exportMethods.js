@@ -1,29 +1,24 @@
-export function exportJSON(data, filename = "table-data.json") {
-    const jsonStr = JSON.stringify(data, null, 2);
-    const blob = new Blob([jsonStr], { type: "application/json" });
-
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    link.click();
-
-    URL.revokeObjectURL(link.href);
-}
-
-// Helper function (reused)
+// Reusable download function
 export function downloadJSON(data, filename = "data.json") {
     const jsonStr = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
+    link.href = url;
     link.download = filename;
     link.click();
 
-    URL.revokeObjectURL(link.href);
+    // Delay revoking the URL to ensure the download completes
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// To be used inside DataTable class
+// For exporting all rows
+export function exportJSON(data, filename = "table-data.json") {
+    downloadJSON(data, filename);
+}
+
+// For exporting selected rows by ID
 export function downloadSelectedJSON(
     data,
     selectedIds,
