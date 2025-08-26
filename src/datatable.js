@@ -86,6 +86,7 @@ export default class DataTable {
     baseTheme = "tailwind",
 
     rangeFilterFields = {},
+    filters = {},
     loading = {
       show: false,
       elementId: null,
@@ -158,6 +159,7 @@ export default class DataTable {
     this.scrollWrapperHeight = infiniteScrollConfig.scrollWrapperHeight;
 
     this.rangeFilterFields = rangeFilterFields;
+    this.filters = filters;
 
     const selectedTheme = DEFAULT_THEME[baseTheme] || DEFAULT_THEME.daisyui;
     this.theme = {
@@ -212,6 +214,7 @@ export default class DataTable {
     this.stickyHeader = stickyHeader;
 
     this.columnFiltering = columnFiltering;
+    this.filters = filters;
 
     // Button configuration
     this.exportable = {
@@ -1106,6 +1109,14 @@ export default class DataTable {
       perPage: this.rowsPerPage,
       columnFilters: JSON.stringify(this.columnFilters),
     });
+
+    // Attach normal filters
+    for (const [key, value] of Object.entries(this.filters)) {
+      if (value !== "" && value != null) {
+        params.append(key, value); // not inside "filters"
+      }
+    }
+
     if (applyRangeFilters) {
       params.append("rangeFilters", JSON.stringify(this.getRangeFilters()));
     }
@@ -1423,6 +1434,18 @@ export default class DataTable {
 
       filterRow.appendChild(th);
     });
+  }
+  setFilter(key, value) {
+    this.filters[key] = value;
+    this.fetchData();
+  }
+
+  removeFilter(key) {
+    delete this.filters[key];
+  }
+
+  clearFilters() {
+    this.filters = {};
   }
 
   renderColumnHeaders(thead, visibleColumns, hasGroups) {
