@@ -50,7 +50,7 @@ const table = new DataTable({
 ## Using CDN
 
 ```
-<script src="https://unpkg.com/vanillajs-datatable@1.0.8/dist/index.min.js"></script>
+<script src="https://unpkg.com/vanillajs-datatable@1.0.9/dist/index.min.js"></script>
 <script>
   const table = new DataTable({
     // config options

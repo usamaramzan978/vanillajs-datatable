@@ -1435,9 +1435,11 @@ export default class DataTable {
       filterRow.appendChild(th);
     });
   }
-  setFilter(key, value) {
+  setFilter(key, value, silent = false) {
     this.filters[key] = value;
-    this.fetchData();
+    if (!silent) {
+      this.fetchData();
+    }
   }
 
   removeFilter(key) {
