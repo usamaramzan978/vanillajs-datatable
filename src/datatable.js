@@ -17,6 +17,7 @@ import {
   deleteRow,
   deleteRows, // new
   redraw,
+  draw,
 } from "./methods/dataMethods.js";
 
 import { exportJSON, downloadSelectedJSON } from "./methods/exportMethods.js";
@@ -396,7 +397,7 @@ export default class DataTable {
     this.deleteRow = deleteRow.bind(this);
     this.deleteRows = deleteRows.bind(this);
     this.redraw = redraw.bind(this);
-    this.draw = this.redraw;
+    this.draw = draw.bind(this);
 
     // ---------- Sorting helpers ----------
     this.setSort = setSort.bind(this);

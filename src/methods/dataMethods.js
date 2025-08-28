@@ -9,7 +9,7 @@
  * @returns {Array<Object>} Copy of the table data
  */
 export function getData() {
-    return [...this.data]; // shallow copy
+  return [...this.data]; // shallow copy
 }
 
 /**
@@ -18,7 +18,7 @@ export function getData() {
  * @returns {Object|null} The row object or null if not found
  */
 export function getRowData(rowId) {
-    return this.data.find((row) => row.id === rowId) || null;
+  return this.data.find((row) => row.id === rowId) || null;
 }
 
 /**
@@ -27,7 +27,7 @@ export function getRowData(rowId) {
  * @returns {number} Row index or -1 if not found
  */
 export function getRowIndex(rowId) {
-    return this.data.findIndex((row) => row.id === rowId);
+  return this.data.findIndex((row) => row.id === rowId);
 }
 
 /**
@@ -37,7 +37,7 @@ export function getRowIndex(rowId) {
  * @returns {Array<Object>} Array of matching rows
  */
 export function getRowsBy(field, value) {
-    return this.data.filter((r) => r[field] === value);
+  return this.data.filter((r) => r[field] === value);
 }
 
 /**
@@ -47,12 +47,12 @@ export function getRowsBy(field, value) {
  * @returns {Array<Object>} Array of matching rows
  */
 export function findRowsByFieldContains(field, value) {
-    const v = String(value).toLowerCase();
-    return this.data.filter((r) =>
-        String(r[field] ?? "")
-            .toLowerCase()
-            .includes(v)
-    );
+  const v = String(value).toLowerCase();
+  return this.data.filter((r) =>
+    String(r[field] ?? "")
+      .toLowerCase()
+      .includes(v)
+  );
 }
 
 /* ---------- 2.  Create ---------- */
@@ -65,23 +65,23 @@ export function findRowsByFieldContains(field, value) {
  * @returns {Object|false} The added row object or `false` on failure
  */
 export function addRow(data, silent = false, prepend = false) {
-    if (!data.id) {
-        console.warn("Each row must have a unique `id`.");
-        return false;
-    }
+  if (!data.id) {
+    console.warn("Each row must have a unique `id`.");
+    return false;
+  }
 
-    if (this.getRowData(data.id)) {
-        console.warn(`Row with id ${data.id} already exists`);
-        return false;
-    }
+  if (this.getRowData(data.id)) {
+    console.warn(`Row with id ${data.id} already exists`);
+    return false;
+  }
 
-    prepend ? this.data.unshift(data) : this.data.push(data);
+  prepend ? this.data.unshift(data) : this.data.push(data);
 
-    if (!silent) {
-        this._renderTable();
-    }
+  if (!silent) {
+    this._renderTable();
+  }
 
-    return true;
+  return true;
 }
 
 /**
@@ -91,12 +91,12 @@ export function addRow(data, silent = false, prepend = false) {
  * @returns {Array<Object>} Array of successfully added rows
  */
 export function addRows(rows, silent = false) {
-    if (!Array.isArray(rows)) throw new TypeError("addRows expects an array");
-    const added = rows.map((r) => this.addRow(r, true, false)); // silent single adds
-    if (!silent) {
-        this._renderTable();
-    }
-    return added;
+  if (!Array.isArray(rows)) throw new TypeError("addRows expects an array");
+  const added = rows.map((r) => this.addRow(r, true, false)); // silent single adds
+  if (!silent) {
+    this._renderTable();
+  }
+  return added;
 }
 
 /* ---------- 3.  Update ---------- */
@@ -109,12 +109,12 @@ export function addRows(rows, silent = false) {
  * @returns {Object|false} Updated row object or `false` if not found
  */
 export function updateRow(rowId, newData) {
-    const index = this.data.findIndex((row) => row.id === rowId);
-    if (index === -1) return false;
+  const index = this.data.findIndex((row) => row.id === rowId);
+  if (index === -1) return false;
 
-    this.data[index] = { ...this.data[index], ...newData };
-    this._renderTable();
-    return true;
+  this.data[index] = { ...this.data[index], ...newData };
+  this._renderTable();
+  return true;
 }
 
 /**
@@ -124,16 +124,16 @@ export function updateRow(rowId, newData) {
  * @returns {Array<Object>} Array of updated rows
  */
 export function updateRows(updates, silent = false) {
-    // updates = [{id, ...newFields}, ...]
-    const updated = [];
-    updates.forEach(({ id, ...fields }) => {
-        const row = this.updateRow(id, fields, true);
-        if (row) updated.push(row);
-    });
-    if (!silent && updated.length) {
-        this._renderTable();
-    }
-    return updated;
+  // updates = [{id, ...newFields}, ...]
+  const updated = [];
+  updates.forEach(({ id, ...fields }) => {
+    const row = this.updateRow(id, fields, true);
+    if (row) updated.push(row);
+  });
+  if (!silent && updated.length) {
+    this._renderTable();
+  }
+  return updated;
 }
 
 /* ---------- 4.  Delete ---------- */
@@ -145,12 +145,12 @@ export function updateRows(updates, silent = false) {
  * @returns {Object|false} Deleted row object or `false` if not found
  */
 export function deleteRow(rowId) {
-    const index = this.data.findIndex((row) => row.id === rowId);
-    if (index === -1) return false;
+  const index = this.data.findIndex((row) => row.id === rowId);
+  if (index === -1) return false;
 
-    this.data.splice(index, 1);
-    this._renderTable();
-    return true;
+  this.data.splice(index, 1);
+  this._renderTable();
+  return true;
 }
 
 /**
@@ -160,32 +160,43 @@ export function deleteRow(rowId) {
  * @returns {Array<Object>} Array of deleted rows
  */
 export function deleteRows(ids, silent = false) {
-    if (!Array.isArray(ids)) ids = [ids];
-    const removed = [];
-    ids.forEach((id) => {
-        const row = this.deleteRow(id, true);
-        if (row) removed.push(row);
-    });
-    if (!silent && removed.length) {
-        this._renderTable();
-    }
-    return removed;
+  if (!Array.isArray(ids)) ids = [ids];
+  const removed = [];
+  ids.forEach((id) => {
+    const row = this.deleteRow(id, true);
+    if (row) removed.push(row);
+  });
+  if (!silent && removed.length) {
+    this._renderTable();
+  }
+  return removed;
 }
 
 /* ---------- 5.  Redraw helpers ---------- */
+
 /**
  * Force a full re-render of the table UI.
- * Useful after manual data manipulation.
- * @returns {void}
+ * Automatically bound to the DataTable instance.
+ *
+ * @param {Object} dt - DataTable instance
+ */
+function _doRedraw(dt) {
+  if (!dt || typeof dt._renderTable !== "function") {
+    throw new Error("redraw(): _renderTable method not found on instance");
+  }
+  dt._renderTable();
+}
+
+/**
+ * Full redraw — bound to the instance when attached.
  */
 export function redraw() {
-    if (typeof this._renderTable !== "function")
-        throw new Error("_renderTable method not found");
-    this._renderTable();
+  _doRedraw(this);
 }
 
 /**
  * Alias for `redraw()` (jQuery-style).
- * @type {Function}
  */
-export const draw = redraw;
+export function draw() {
+  _doRedraw(this);
+}
