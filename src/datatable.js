@@ -1,8 +1,8 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Selectable } from "./selectable";
-import { DataTableEvents } from "./datatable-events";
 import { KeyboardNavigation } from "./keyboard-navigation";
+import { DataTableEvents } from "./datatable-events";
 import { DEFAULT_THEME } from "./datatable-theme";
 import {
   getData,
@@ -24,6 +24,13 @@ import { exportJSON, downloadSelectedJSON } from "./methods/exportMethods.js";
 import { setSort, clearSort } from "./methods/sortingMethods.js";
 import { copyToClipboard } from "./methods/utiilityMethods.js";
 import {
+  applyElementsToPdf,
+  applyElementsToPrint,
+  validateElement,
+  applyTextToPdf,
+  applyImageToPdf,
+} from "./methods/exportCustomization.js";
+import {
   goToPage,
   setPageSize,
   getCurrentPage,
@@ -35,7 +42,6 @@ import {
 
 export default class DataTable {
   constructor({
-    data,
     tableId,
     url,
     perPage = 10,
@@ -45,7 +51,6 @@ export default class DataTable {
     columns = [], // Add default empty array here
     dataSrc = null,
     saveState = false,
-
     keyboardNav = false,
     // Element IDs
     searchInputId = null,
@@ -86,7 +91,6 @@ export default class DataTable {
     theme = {}, // default to empty object
     baseTheme = "tailwind",
 
-    rangeFilterFields = {},
     filters = {},
     loading = {
       show: false,
@@ -106,6 +110,11 @@ export default class DataTable {
       maxScrollPages: 1000,
       scrollWrapperHeight: "80vh",
     },
+    columnVisibility = {
+      enabled: false,
+      showButton: true,
+      persistState: true,
+    },
     exportable = {
       enabled: true,
       buttons: {
@@ -113,12 +122,6 @@ export default class DataTable {
         excel: true,
         csv: true,
         pdf: true,
-      },
-      title: {
-        print: "Printable Report",
-        pdf: "PDF Export",
-        excel: "Excel Export",
-        csv: "CSV Export",
       },
       chunkSize: {
         print: 50,
@@ -131,11 +134,6 @@ export default class DataTable {
         unit: "mm",
         format: "a4",
         theme: "grid",
-        watermark: {
-          text: null,
-          opacity: 0.1,
-          angle: 45,
-        },
       },
       fileName: {
         print: "print_report",
@@ -148,8 +146,8 @@ export default class DataTable {
   }) {
     const infiniteScrollConfig = {
       enabled: infiniteScroll?.enabled !== false,
-      scrollOffset: infiniteScroll?.scrollOffset,
-      hidePaginationOnScroll: infiniteScroll?.hidePaginationOnScroll,
+      scrollOffset: infiniteScroll?.scrollOffset || 10,
+      hidePaginationOnScroll: infiniteScroll?.hidePaginationOnScroll !== false,
       maxScrollPages: infiniteScroll?.maxScrollPages,
       scrollWrapperHeight: infiniteScroll?.scrollWrapperHeight,
     };
@@ -159,7 +157,6 @@ export default class DataTable {
     this.maxScrollPages = infiniteScrollConfig.maxScrollPages;
     this.scrollWrapperHeight = infiniteScrollConfig.scrollWrapperHeight;
 
-    this.rangeFilterFields = rangeFilterFields;
     this.filters = filters;
 
     const selectedTheme = DEFAULT_THEME[baseTheme] || DEFAULT_THEME.daisyui;
@@ -217,6 +214,21 @@ export default class DataTable {
     this.columnFiltering = columnFiltering;
     this.filters = filters;
 
+    // Column Visibility Configuration
+    this.columnVisibility = {
+      enabled: columnVisibility?.enabled !== false,
+      showButton: columnVisibility?.showButton !== false,
+      persistState: columnVisibility?.persistState !== false,
+    };
+
+    // Initialize column visibility state
+    // Store visibility state: { columnName: true/false }
+    this.columnVisibilityState = {};
+    this.columns.forEach((col) => {
+      // Initialize with column's visible property, default to true
+      this.columnVisibilityState[col.name] = col.visible !== false;
+    });
+
     // Button configuration
     this.exportable = {
       enabled: exportable.enabled !== false, // default true unless explicitly false
@@ -226,13 +238,6 @@ export default class DataTable {
         csv: exportable.buttons?.csv !== false,
         pdf: exportable.buttons?.pdf === true, // default false unless explicitly true
         ...exportable.buttons,
-      },
-      title: {
-        print: exportable.title?.print || "Printable Report",
-        pdf: exportable.title?.pdf || "PDF Export",
-        excel: exportable.title?.excel || "Excel Export",
-        csv: exportable.title?.csv || "Csv Export",
-        ...exportable.title,
       },
       chunkSize: {
         print: exportable.chunkSize?.print || 100,
@@ -248,22 +253,50 @@ export default class DataTable {
         csv: exportable.fileName?.csv || "csv_export",
         ...exportable.fileName,
       },
-      watermark: {
-        text: exportable.pdfOptions.watermark?.text || "Company Confidential",
-        opacity: exportable.pdfOptions.watermark?.opacity || 0.1,
-        angle: exportable.pdfOptions.watermark?.angle || 45,
-        ...exportable.pdfOptions.watermark,
-      },
       pdfOptions: {
         orientation: exportable.pdfOptions?.orientation || "portrait",
         unit: exportable.pdfOptions?.unit || "mm",
         format: exportable.pdfOptions?.format || "a4",
         theme: exportable.pdfOptions?.theme || "grid",
-        ...exportable.pdfOptions,
+        // Header styling options - merge defaults with user config
+        headerStyles: {
+          fillColor: [41, 128, 185], // Default blue [R, G, B]
+          textColor: 255, // Default white (0-255)
+          ...exportable.pdfOptions?.headerStyles,
+        },
+        // Spread other pdfOptions after headerStyles to allow overrides
+        ...Object.fromEntries(
+          Object.entries(exportable.pdfOptions || {}).filter(
+            ([key]) => key !== "headerStyles"
+          )
+        ),
       },
       footer: exportable.footer !== false, // default true unless explicitly false
+      // Store custom elements for exports
+      customElements: exportable.customElements || {
+        pdf: [],
+        print: [],
+        excel: [],
+      },
+      // Progress callbacks
+      onExportProgress: exportable.onExportProgress || null,
+      onExportComplete: exportable.onExportComplete || null,
+      onExportError: exportable.onExportError || null,
     };
     this.chunkSize = this.exportable.chunkSize;
+
+    // Export progress tracking
+    this.exportProgress = {
+      isActive: false,
+      type: null, // 'excel', 'csv', 'pdf', 'print'
+      current: 0,
+      total: 0,
+      startTime: null,
+      cancelController: null,
+      progressElement: null,
+      isModalVisible: false, // Track if modal is visible
+      toggleButton: null, // Floating toggle button
+    };
 
     this.buttonConfig = {
       reset: {
@@ -313,6 +346,13 @@ export default class DataTable {
         enabled: searchable,
         icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-icon lucide-search"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>`,
         text: "Search",
+      },
+      columnVisibility: {
+        id: `${tableId}-column-visibility-button`,
+        enabled:
+          this.columnVisibility.enabled && this.columnVisibility.showButton,
+        icon: `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-columns-icon lucide-columns"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>`,
+        text: "Columns",
       },
     };
 
@@ -444,58 +484,148 @@ export default class DataTable {
     this.setSelectMode = (mode) => this.selectable.setSelectMode(mode);
     this.destroySelectable = () => this.selectable.destroy();
 
+    // ---------- Row and Cell Click handlers ----------
+    this._rowClickCallbacks = [];
+    this._cellClickCallbacks = [];
+    this._rowHoverCallbacks = [];
+
+    // Simple row click handler
+    this.onRowClick = (callback) => {
+      if (typeof callback !== "function") {
+        console.warn("onRowClick requires a function callback");
+        return;
+      }
+      this._rowClickCallbacks.push(callback);
+
+      // Add event listener if first callback
+      if (this._rowClickCallbacks.length === 1) {
+        this.table.addEventListener("click", (event) => {
+          const row = event.target.closest("tr");
+          if (!row || !row.dataset.id) return;
+
+          // Ignore clicks on buttons, links, inputs
+          if (
+            event.target.closest(
+              "button, a, input, select, textarea, [role='button']"
+            )
+          ) {
+            return;
+          }
+
+          const rowId = row.dataset.id;
+          let rowData = {};
+          try {
+            if (row.dataset.row) {
+              rowData = JSON.parse(row.dataset.row);
+            } else {
+              // Fallback: extract from cells
+              const cells = row.querySelectorAll("td");
+              cells.forEach((cell, index) => {
+                const columnName = cell.dataset.column || `column_${index}`;
+                rowData[columnName] = cell.textContent.trim();
+              });
+            }
+          } catch (error) {
+            console.warn("Failed to parse row data:", error);
+          }
+
+          // Call all registered callbacks
+          this._rowClickCallbacks.forEach((cb) => {
+            cb(rowId, rowData, row, event);
+          });
+        });
+      }
+    };
+
+    // Simple cell click handler
+    this.onCellClick = (callback) => {
+      if (typeof callback !== "function") {
+        console.warn("onCellClick requires a function callback");
+        return;
+      }
+      this._cellClickCallbacks.push(callback);
+
+      // Add event listener if first callback
+      if (this._cellClickCallbacks.length === 1) {
+        this.table.addEventListener("click", (event) => {
+          const cell = event.target.closest("td");
+          if (!cell) return;
+
+          const row = cell.closest("tr");
+          if (!row || !row.dataset.id) return;
+
+          const rowId = row.dataset.id;
+          const columnName = cell.dataset.column || "";
+          const cellValue = cell.textContent.trim();
+
+          let rowData = {};
+          try {
+            if (row.dataset.row) {
+              rowData = JSON.parse(row.dataset.row);
+            }
+          } catch (error) {
+            console.warn("Failed to parse row data:", error);
+          }
+
+          // Call all registered callbacks
+          this._cellClickCallbacks.forEach((cb) => {
+            cb(rowId, columnName, cellValue, cell, row, rowData, event);
+          });
+        });
+      }
+    };
+
+    // Simple row hover handler
+    this.onRowHover = (callback) => {
+      if (typeof callback !== "function") {
+        console.warn("onRowHover requires a function callback");
+        return;
+      }
+      this._rowHoverCallbacks.push(callback);
+
+      // Add event listener if first callback
+      if (this._rowHoverCallbacks.length === 1) {
+        this.table.addEventListener(
+          "mouseenter",
+          (event) => {
+            const row = event.target.closest("tr");
+            if (!row || !row.dataset.id) return;
+
+            const rowId = row.dataset.id;
+            let rowData = {};
+            try {
+              if (row.dataset.row) {
+                rowData = JSON.parse(row.dataset.row);
+              }
+            } catch (error) {
+              console.warn("Failed to parse row data:", error);
+            }
+
+            // Call all registered callbacks
+            this._rowHoverCallbacks.forEach((cb) => {
+              cb(rowId, rowData, row, event);
+            });
+          },
+          true
+        );
+      }
+    };
+
     this.init();
   }
 
   init() {
-    if (this.saveState) {
-      this.loadState(); // Load saved state early before fetchData()
-    }
+    if (this.saveState) this.loadState(); // Load saved state early before fetchData()
     if (this.enableLoadingSpinner) this.toggleLoadingSpinner(true);
-
     this.addDefaultControls();
     this.initButtons();
     this.initSearch();
-    this.fetchData();
+    if (this.url) this.fetchData();
     this.initPagination();
     this.initInfiniteScroll();
     this.renderTableHeader();
-
-    this.dispatchEvent(DataTableEvents.INIT, {
-      config: {
-        url: this.url,
-        columns: this.columns,
-        features: {
-          sorting: this.sortable,
-          pagination: this.pagination,
-          search: this.search,
-        },
-      },
-    });
   }
 
-  dispatchEvent(name, detail = {}) {
-    if (!this.table) {
-      console.warn(
-        `Cannot dispatch datatable:${name} - table element not found`
-      );
-      return false;
-    }
-
-    const event = new CustomEvent(`datatable:${name}`, {
-      detail: {
-        ...detail,
-        tableId: this.table.id,
-        timestamp: new Date().toISOString(),
-      },
-      bubbles: true,
-      cancelable: true,
-    });
-
-    // console.log(`Dispatching datatable:${name}`, event.detail); // <--- Debug line
-
-    return this.table.dispatchEvent(event);
-  }
   /**
    * State Persistence
    * Saves the current state of the DataTable to localStorage.
@@ -511,9 +641,12 @@ export default class DataTable {
       perPage: this.rowsPerPage,
       filters: this.columnFilters,
       search: this.search,
+      columnVisibility: this.columnVisibility.persistState
+        ? this.columnVisibilityState
+        : undefined,
     };
     localStorage.setItem(
-      `datatable_${this.table.id}_state`,
+      `vanillajs_datatable_${this.table.id}_state`,
       JSON.stringify(state)
     );
   }
@@ -524,7 +657,9 @@ export default class DataTable {
    */
   loadState() {
     // console.log("Loading state" + this.table);
-    const saved = localStorage.getItem(`datatable_${this.table.id}_state`);
+    const saved = localStorage.getItem(
+      `vanillajs_datatable_${this.table.id}_state`
+    );
     if (!saved) return;
 
     const state = JSON.parse(saved);
@@ -537,7 +672,6 @@ export default class DataTable {
       this.clearState();
       return;
     }
-    this.dispatchEvent(DataTableEvents.STATE_RESTORED, { state });
 
     // Apply saved state
     this.sort = state.sort;
@@ -546,11 +680,23 @@ export default class DataTable {
     this.rowsPerPage = state.perPage;
     this.columnFilters = state.filters || {};
     this.search = state.search || "";
+
+    // Restore column visibility if persisted
+    if (
+      this.columnVisibility.persistState &&
+      state.columnVisibility &&
+      typeof state.columnVisibility === "object"
+    ) {
+      this.columnVisibilityState = {
+        ...this.columnVisibilityState,
+        ...state.columnVisibility,
+      };
+    }
   }
 
   clearState() {
     if (!this.table || !this.table.id) return;
-    localStorage.removeItem(`datatable_${this.table.id}_state`);
+    localStorage.removeItem(`vanillajs_datatable_${this.table.id}_state`);
   }
 
   // Initialize all buttons
@@ -577,6 +723,12 @@ export default class DataTable {
     }
     if (this.buttonConfig.perPageSelect.enabled) {
       this.bindPerPageSelect();
+    }
+    if (
+      this.columnVisibility.enabled &&
+      this.buttonConfig.columnVisibility.enabled
+    ) {
+      this.bindColumnVisibilityButton();
     }
   }
 
@@ -831,6 +983,463 @@ export default class DataTable {
     }
   }
 
+  //===================
+  // Export Progress Indicator
+  //===================
+
+  /**
+   * Show export progress UI
+   * @param {string} type - Export type: 'excel', 'csv', 'pdf', 'print'
+   * @param {number} total - Total records/pages to process
+   */
+  showExportProgress(type, total = 0) {
+    this.exportProgress.isActive = true;
+    this.exportProgress.type = type;
+    this.exportProgress.current = 0;
+    this.exportProgress.total = total;
+    this.exportProgress.startTime = Date.now();
+    this.exportProgress.cancelController = new AbortController();
+
+    // Create or get progress element
+    let progressElement = document.getElementById(
+      `${this.tableId}-export-progress`
+    );
+
+    if (!progressElement) {
+      progressElement = document.createElement("div");
+      progressElement.id = `${this.tableId}-export-progress`;
+      progressElement.className = this.theme.exportProgressOverlay || "";
+      progressElement.innerHTML = this._buildProgressHTML(type);
+      document.body.appendChild(progressElement);
+
+      // Bind cancel button
+      const cancelBtn = progressElement.querySelector(
+        ".export-progress-cancel"
+      );
+      if (cancelBtn) {
+        cancelBtn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          this.cancelExport();
+        });
+      }
+
+      // Allow closing the modal by clicking outside (backdrop)
+      // Add click handler to the overlay container itself
+      const handleBackdropClick = (e) => {
+        // Only close if clicking the overlay/backdrop, not the modal content
+        const modal = progressElement.querySelector(".export-progress-modal");
+        const backdrop = progressElement.querySelector(
+          ".export-progress-overlay-backdrop"
+        );
+
+        // Check if click is on backdrop or overlay itself (not on modal)
+        const isBackdropClick =
+          backdrop && (e.target === backdrop || backdrop.contains(e.target));
+        const isOverlayClick = e.target === progressElement;
+        const isModalClick = modal && modal.contains(e.target);
+
+        if ((isBackdropClick || isOverlayClick) && !isModalClick) {
+          e.preventDefault();
+          e.stopPropagation();
+          this.hideProgressModal(); // Hide modal but keep export running
+        }
+      };
+
+      progressElement.addEventListener("click", handleBackdropClick);
+      this.exportProgress.backdropClickHandler = handleBackdropClick;
+    } else {
+      // Reset existing element for new export
+      progressElement.classList.remove("hidden");
+
+      // Reset display style - use !important to override previous hide
+      const isBootstrap = this.theme.framework === "bootstrap";
+      if (isBootstrap) {
+        progressElement.style.setProperty("display", "", "important");
+      } else {
+        progressElement.style.setProperty("display", "flex", "important");
+      }
+
+      // Update title
+      const titleEl = progressElement.querySelector(".export-progress-title");
+      if (titleEl) {
+        titleEl.textContent = `Exporting ${type.toUpperCase()}...`;
+      }
+
+      // Reset progress bar
+      const progressBar = progressElement.querySelector(
+        ".export-progress-bar-fill"
+      );
+      if (progressBar) {
+        progressBar.style.width = "0%";
+      }
+
+      // Reset progress text
+      const progressText = progressElement.querySelector(
+        ".export-progress-text"
+      );
+      if (progressText) {
+        progressText.textContent = "0% (0/0 records)";
+      }
+
+      // Reset time remaining
+      const timeRemaining = progressElement.querySelector(
+        ".export-progress-time"
+      );
+      if (timeRemaining) {
+        timeRemaining.textContent = "";
+      }
+    }
+
+    this.exportProgress.progressElement = progressElement;
+
+    // Focus the modal for accessibility
+    const modal = progressElement.querySelector(".export-progress-modal");
+    if (modal) {
+      modal.focus();
+    }
+
+    this.exportProgress.isModalVisible = true;
+    this._createToggleButton(); // Create floating toggle button
+  }
+
+  /**
+   * Update export progress
+   * @param {number} current - Current progress
+   * @param {number} total - Total to process
+   */
+  updateExportProgress(current, total) {
+    if (!this.exportProgress.isActive || !this.exportProgress.progressElement)
+      return;
+
+    this.exportProgress.current = current;
+    this.exportProgress.total = total;
+
+    const percentage = total > 0 ? Math.round((current / total) * 100) : 0;
+    const progressBar = this.exportProgress.progressElement.querySelector(
+      ".export-progress-bar-fill"
+    );
+    const progressText = this.exportProgress.progressElement.querySelector(
+      ".export-progress-text"
+    );
+    const timeRemaining = this.exportProgress.progressElement.querySelector(
+      ".export-progress-time"
+    );
+
+    if (progressBar) {
+      progressBar.style.width = `${percentage}%`;
+    }
+
+    if (progressText) {
+      progressText.textContent = `${percentage}% (${current}/${total} records)`;
+    }
+
+    // Calculate estimated time remaining
+    if (timeRemaining && this.exportProgress.startTime && current > 0) {
+      const elapsed = Date.now() - this.exportProgress.startTime;
+      const avgTimePerRecord = elapsed / current;
+      const remaining = Math.max(0, (total - current) * avgTimePerRecord);
+      const seconds = Math.ceil(remaining / 1000);
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+
+      if (minutes > 0) {
+        timeRemaining.textContent = `Estimated time remaining: ${minutes}m ${remainingSeconds}s`;
+      } else {
+        timeRemaining.textContent = `Estimated time remaining: ${seconds}s`;
+      }
+    }
+
+    // Update toggle button text if it exists
+    this._updateToggleButton();
+
+    // Call user callback
+    if (this.exportable.onExportProgress) {
+      try {
+        this.exportable.onExportProgress(
+          current,
+          total,
+          this.exportProgress.type
+        );
+      } catch (error) {
+        console.error("Error in onExportProgress callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Create floating toggle button
+   * @private
+   */
+  _createToggleButton() {
+    // Remove existing button if any
+    this._removeToggleButton();
+
+    const isBootstrap = this.theme.framework === "bootstrap";
+    const isDaisyUI = this.theme.framework === "daisyui";
+
+    const button = document.createElement("button");
+    button.id = `${this.tableId}-export-progress-toggle`;
+    button.type = "button";
+    button.className = isBootstrap
+      ? "btn btn-primary position-fixed bottom-0 end-0 m-3 shadow-lg rounded-circle"
+      : isDaisyUI
+      ? "btn btn-primary fixed bottom-4 right-4 shadow-lg rounded-full w-14 h-14"
+      : "fixed bottom-4 right-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full w-14 h-14 shadow-lg flex items-center justify-center z-[9998]";
+
+    button.innerHTML = isBootstrap
+      ? '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>'
+      : '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+
+    button.title = `Exporting ${
+      this.exportProgress.type?.toUpperCase() || ""
+    } - Click to view progress`;
+    button.setAttribute("aria-label", "View export progress");
+
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.showProgressModal();
+    });
+
+    document.body.appendChild(button);
+    this.exportProgress.toggleButton = button;
+    this._updateToggleButton();
+  }
+
+  /**
+   * Update toggle button visibility and text
+   * @private
+   */
+  _updateToggleButton() {
+    if (!this.exportProgress.toggleButton) return;
+
+    const button = this.exportProgress.toggleButton;
+    const isActive = this.exportProgress.isActive;
+    const isVisible = this.exportProgress.isModalVisible;
+
+    if (isActive && !isVisible) {
+      // Show button when export is active but modal is hidden
+      button.style.display = "flex";
+      const percentage =
+        this.exportProgress.total > 0
+          ? Math.round(
+              (this.exportProgress.current / this.exportProgress.total) * 100
+            )
+          : 0;
+      button.title = `Exporting ${
+        this.exportProgress.type?.toUpperCase() || ""
+      } - ${percentage}% - Click to view progress`;
+    } else {
+      // Hide button when modal is visible or export is not active
+      button.style.display = "none";
+    }
+  }
+
+  /**
+   * Remove toggle button
+   * @private
+   */
+  _removeToggleButton() {
+    if (this.exportProgress.toggleButton) {
+      this.exportProgress.toggleButton.remove();
+      this.exportProgress.toggleButton = null;
+    }
+  }
+
+  /**
+   * Hide progress modal (but keep export running)
+   */
+  hideProgressModal() {
+    if (this.exportProgress.progressElement) {
+      this.exportProgress.progressElement.classList.add("hidden");
+      this.exportProgress.progressElement.style.setProperty(
+        "display",
+        "none",
+        "important"
+      );
+    }
+    this.exportProgress.isModalVisible = false;
+    this._updateToggleButton(); // Update toggle button visibility
+  }
+
+  /**
+   * Show progress modal
+   */
+  showProgressModal() {
+    if (this.exportProgress.progressElement) {
+      this.exportProgress.progressElement.classList.remove("hidden");
+      // Set display based on framework - use !important to override any inline styles
+      const isBootstrap = this.theme.framework === "bootstrap";
+      if (isBootstrap) {
+        this.exportProgress.progressElement.style.setProperty(
+          "display",
+          "",
+          "important"
+        );
+        // Bootstrap uses d-flex class, so we just remove hidden
+      } else {
+        this.exportProgress.progressElement.style.setProperty(
+          "display",
+          "flex",
+          "important"
+        );
+      }
+    }
+    this.exportProgress.isModalVisible = true;
+    this._updateToggleButton(); // Update toggle button visibility
+
+    // Focus the modal for accessibility
+    const modal = this.exportProgress.progressElement?.querySelector(
+      ".export-progress-modal"
+    );
+    if (modal) {
+      modal.focus();
+    }
+  }
+
+  /**
+   * Hide export progress UI completely (export finished or cancelled)
+   */
+  hideExportProgress() {
+    if (this.exportProgress.progressElement) {
+      this.exportProgress.progressElement.classList.add("hidden");
+      this.exportProgress.progressElement.style.setProperty(
+        "display",
+        "none",
+        "important"
+      );
+      // Also try removing from DOM as fallback
+      setTimeout(() => {
+        if (
+          this.exportProgress.progressElement &&
+          this.exportProgress.progressElement.parentNode
+        ) {
+          this.exportProgress.progressElement.style.setProperty(
+            "display",
+            "none",
+            "important"
+          );
+        }
+      }, 0);
+    }
+    this._removeToggleButton(); // Remove toggle button
+    this.exportProgress.isActive = false;
+    this.exportProgress.isModalVisible = false;
+    this.exportProgress.type = null;
+    this.exportProgress.current = 0;
+    this.exportProgress.total = 0;
+    this.exportProgress.startTime = null;
+    this.exportProgress.cancelController = null;
+  }
+
+  /**
+   * Cancel current export
+   */
+  cancelExport() {
+    if (this.exportProgress.cancelController) {
+      this.exportProgress.cancelController.abort();
+    }
+    this.hideExportProgress();
+
+    // Call error callback
+    if (this.exportable.onExportError) {
+      try {
+        this.exportable.onExportError(
+          new Error("Export cancelled by user"),
+          this.exportProgress.type
+        );
+      } catch (error) {
+        console.error("Error in onExportError callback:", error);
+      }
+    }
+  }
+
+  /**
+   * Build progress HTML structure
+   * @private
+   */
+  _buildProgressHTML(type) {
+    const isBootstrap = this.theme.framework === "bootstrap";
+    const isDaisyUI = this.theme.framework === "daisyui";
+    const isTailwind = this.theme.framework === "tailwind";
+
+    // Use theme classes, fallback to defaults that use theme colors
+    const overlayClass =
+      this.theme.exportProgressOverlay ||
+      (isBootstrap
+        ? "position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-[9999]"
+        : "fixed inset-0 flex items-center justify-content-center z-[9999]");
+
+    const modalClass =
+      this.theme.exportProgressModal ||
+      (isBootstrap
+        ? "rounded p-4 shadow-lg w-100 mx-3"
+        : isDaisyUI
+        ? "bg-base-100 rounded-lg p-6 shadow-xl w-full max-w-md mx-4"
+        : "bg-white dark:bg-gray-800 rounded-lg p-6 shadow-xl w-full max-w-md mx-4");
+
+    const titleClass =
+      this.theme.exportProgressTitle ||
+      (isBootstrap ? "h5 mb-3" : "text-xl font-semibold mb-4");
+
+    const barContainerClass =
+      this.theme.exportProgressBarContainer ||
+      (isBootstrap ? "progress mb-3" : "w-full rounded-full h-2.5 mb-3");
+
+    const barFillClass =
+      this.theme.exportProgressBarFill ||
+      (isBootstrap
+        ? "progress-bar progress-bar-striped progress-bar-animated"
+        : "h-2.5 rounded-full transition-all duration-300");
+
+    const textClass =
+      this.theme.exportProgressText ||
+      (isBootstrap ? "text-center mb-2" : "text-center text-sm mb-2");
+
+    const timeClass =
+      this.theme.exportProgressTime ||
+      (isBootstrap ? "text-center mb-3" : "text-center text-xs mb-3");
+
+    const noteClass =
+      this.theme.exportProgressNote ||
+      (isBootstrap ? "text-center mb-3" : "text-center text-xs mb-3");
+
+    const cancelBtnClass =
+      this.theme.exportProgressCancel ||
+      (isBootstrap
+        ? "btn btn-secondary w-100"
+        : isDaisyUI
+        ? "btn btn-sm btn-outline w-full"
+        : "px-4 py-2 rounded text-sm w-full");
+
+    // Build backdrop with theme-aware background
+    const backdropClass = isBootstrap
+      ? "position-absolute top-0 start-0 w-100 h-100 export-progress-overlay-backdrop"
+      : "absolute inset-0 export-progress-overlay-backdrop";
+
+    return `
+            <div class="${overlayClass}" style="backdrop-filter: blur(2px);">
+                <div class="${backdropClass} export-progress-overlay-backdrop" style="background-color: rgba(0, 0, 0, 0.5);"></div>
+                <div class="${modalClass} export-progress-modal position-relative z-10" tabindex="-1" style="outline: none; max-width: 500px;">
+                    <h3 class="${titleClass} export-progress-title text-center">Exporting ${type.toUpperCase()}...</h3>
+                    <div class="${barContainerClass}">
+                        <div class="${barFillClass} export-progress-bar-fill" style="width: 0%;"></div>
+                    </div>
+                    <div class="${textClass} export-progress-text">0% (0/0 records)</div>
+                    <div class="${timeClass} export-progress-time"></div>
+                    <div class="${noteClass} export-progress-note" style="color: rgba(239, 68, 68, 0.9); font-weight: 500; padding: 8px; background-color: rgba(239, 68, 68, 0.1); border-radius: 4px; margin-bottom: 12px;">
+                        <svg style="display: inline-block; width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                        </svg>
+                        Please do not close this window while export is in progress
+                    </div>
+                    <button type="button" class="${cancelBtnClass} export-progress-cancel">Cancel Export</button>
+                </div>
+            </div>
+        `;
+  }
+
   // ==============================
   // Binds Header Buttons
   // ==============================
@@ -870,9 +1479,6 @@ export default class DataTable {
       input.value = "";
     });
 
-    // Dispatch the `reset` event
-    this.dispatchEvent(DataTableEvents.RESET);
-
     // Fetch new data
     this.fetchData();
   }
@@ -882,7 +1488,6 @@ export default class DataTable {
     if (!reloadButton) return;
 
     reloadButton.addEventListener("click", () => {
-      this.dispatchEvent(DataTableEvents.RELOAD);
       this.fetchData();
     });
   }
@@ -892,7 +1497,6 @@ export default class DataTable {
     if (!button) return;
 
     button.addEventListener("click", () => {
-      this.dispatchEvent(DataTableEvents.EXPORT);
       this.exportToExcel();
     });
   }
@@ -935,17 +1539,9 @@ export default class DataTable {
       this.searchInput = searchInput;
       this.bindSearch();
 
-      /**
-       * Input event listener for the search field.
-       * @event input
-       */
       this.searchInput.addEventListener("input", (e) => {
         this.search = e.target.value;
         this.currentPage = 1;
-
-        this.dispatchEvent(DataTableEvents.SEARCH, {
-          search: this.search,
-        });
       });
     }
   }
@@ -965,13 +1561,6 @@ export default class DataTable {
       // Update search term and reset to the first page
       this.search = e.target.value;
       this.currentPage = 1;
-
-      // Dispatch a custom search event with relevant data
-      this.dispatchEvent(DataTableEvents.SEARCH, {
-        searchTerm: this.search,
-        currentPage: this.currentPage,
-        searchDelay: this.searchDelay,
-      });
 
       // Save the current state if enabled
       if (this.enableSaveState) {
@@ -1071,33 +1660,423 @@ export default class DataTable {
       this.rowsPerPage = parseInt(e.target.value);
       // console.log(`Rows per page set to: ${e.target.value}`);
       this.currentPage = 1;
+      this.fetchData();
+    });
+  }
 
-      this.dispatchEvent(DataTableEvents.PER_PAGE_CHANGE, {
-        perPage: this.rowsPerPage,
-        currentPage: this.currentPage,
+  // ==============================
+  // COLUMN VISIBILITY METHODS
+  // ==============================
+
+  /**
+   * Get all visible columns based on visibility state
+   * @returns {Array} Array of visible column objects
+   */
+  getVisibleColumns() {
+    return this.columns.filter((col) => this.isColumnVisible(col.name));
+  }
+
+  /**
+   * Check if a column is visible
+   * @param {string} columnName - Name of the column
+   * @returns {boolean} True if column is visible
+   */
+  isColumnVisible(columnName) {
+    // Check visibility state first, then fall back to column.visible property
+    if (this.columnVisibilityState.hasOwnProperty(columnName)) {
+      return this.columnVisibilityState[columnName] !== false;
+    }
+    // Fallback to column's visible property
+    const column = this.columns.find((col) => col.name === columnName);
+    return column ? column.visible !== false : true;
+  }
+
+  /**
+   * Toggle column visibility
+   * @param {string} columnName - Name of the column to toggle
+   * @param {boolean} [visible] - Optional: force visibility state (true/false)
+   * @returns {boolean} New visibility state
+   */
+  toggleColumnVisibility(columnName, visible = null) {
+    if (!this.columnVisibility.enabled) {
+      console.warn("Column visibility is not enabled");
+      return false;
+    }
+
+    const column = this.columns.find((col) => col.name === columnName);
+    if (!column) {
+      console.warn(`Column "${columnName}" not found`);
+      return false;
+    }
+
+    // If column has exportable: false or is required, prevent hiding
+    if (visible === false && column.required) {
+      console.warn(`Column "${columnName}" is required and cannot be hidden`);
+      return true;
+    }
+
+    // Toggle or set visibility
+    const newVisibility =
+      visible !== null ? visible : !this.columnVisibilityState[columnName];
+
+    this.columnVisibilityState[columnName] = newVisibility;
+
+    // Save state if enabled
+    if (this.enableSaveState && this.columnVisibility.persistState) {
+      this.saveState();
+    }
+
+    // Re-render table header and body
+    this.renderTableHeader();
+    this.renderTable(this.data);
+
+    return newVisibility;
+  }
+
+  /**
+   * Show a column
+   * @param {string} columnName - Name of the column to show
+   */
+  showColumn(columnName) {
+    return this.toggleColumnVisibility(columnName, true);
+  }
+
+  /**
+   * Hide a column
+   * @param {string} columnName - Name of the column to hide
+   */
+  hideColumn(columnName) {
+    return this.toggleColumnVisibility(columnName, false);
+  }
+
+  /**
+   * Show all columns
+   */
+  showAllColumns() {
+    if (!this.columnVisibility.enabled) return;
+
+    this.columns.forEach((col) => {
+      if (!col.required) {
+        this.columnVisibilityState[col.name] = true;
+      }
+    });
+
+    if (this.enableSaveState && this.columnVisibility.persistState) {
+      this.saveState();
+    }
+
+    this.renderTableHeader();
+    this.renderTable(this.data);
+  }
+
+  /**
+   * Hide all columns (except required ones)
+   */
+  hideAllColumns() {
+    if (!this.columnVisibility.enabled) return;
+
+    this.columns.forEach((col) => {
+      if (!col.required) {
+        this.columnVisibilityState[col.name] = false;
+      }
+    });
+
+    if (this.enableSaveState && this.columnVisibility.persistState) {
+      this.saveState();
+    }
+
+    this.renderTableHeader();
+    this.renderTable(this.data);
+  }
+
+  /**
+   * Reset column visibility to initial state
+   */
+  resetColumnVisibility() {
+    if (!this.columnVisibility.enabled) return;
+
+    this.columns.forEach((col) => {
+      this.columnVisibilityState[col.name] = col.visible !== false;
+    });
+
+    if (this.enableSaveState && this.columnVisibility.persistState) {
+      this.saveState();
+    }
+
+    this.renderTableHeader();
+    this.renderTable(this.data);
+  }
+
+  /**
+   * Bind column visibility button and create dropdown
+   */
+  bindColumnVisibilityButton() {
+    const button = document.getElementById(
+      this.buttonConfig.columnVisibility.id
+    );
+    if (!button) {
+      console.warn(
+        `Column visibility button with id '${this.buttonConfig.columnVisibility.id}' not found. Make sure columnVisibility.enabled and columnVisibility.showButton are both true.`
+      );
+      return;
+    }
+
+    // Create dropdown menu
+    const dropdown = document.createElement("div");
+    dropdown.id = `${this.tableId}-column-visibility-dropdown`;
+    dropdown.className =
+      this.theme.columnVisibilityDropdown || "column-visibility-dropdown";
+    dropdown.style.display = "none";
+
+    // Add column checkboxes
+    const columnsList = document.createElement("div");
+    columnsList.className =
+      this.theme.columnVisibilityList || "column-visibility-list";
+
+    this.columns.forEach((column) => {
+      const isRequired = column.required === true;
+      const isVisible = this.isColumnVisible(column.name);
+
+      const item = document.createElement("div");
+      item.className =
+        this.theme.columnVisibilityItem || "column-visibility-item";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.id = `col-vis-${column.name}`;
+      checkbox.checked = isVisible;
+      checkbox.disabled = isRequired;
+      checkbox.className =
+        this.theme.columnVisibilityCheckbox || "column-visibility-checkbox";
+
+      const label = document.createElement("label");
+      label.htmlFor = `col-vis-${column.name}`;
+      label.textContent = column.label || column.name;
+      label.className = isRequired
+        ? this.theme.columnVisibilityLabelRequired ||
+          "column-visibility-label-required"
+        : this.theme.columnVisibilityLabel || "column-visibility-label";
+
+      if (isRequired) {
+        label.textContent += " (required)";
+      }
+
+      item.appendChild(checkbox);
+      item.appendChild(label);
+      columnsList.appendChild(item);
+
+      // Handle checkbox change - this fires when checkbox is clicked directly
+      checkbox.addEventListener("change", (e) => {
+        e.stopPropagation();
+        if (!isRequired) {
+          this.toggleColumnVisibility(column.name, checkbox.checked);
+          // Update checkbox state after toggle (in case it was prevented)
+          checkbox.checked = this.isColumnVisible(column.name);
+        } else {
+          // Prevent unchecking required columns
+          checkbox.checked = true;
+        }
       });
 
-      this.fetchData();
+      // Handle checkbox click - prevent item click from interfering, but allow default
+      checkbox.addEventListener("click", (e) => {
+        e.stopPropagation();
+        // Allow default checkbox behavior - it will fire change event
+      });
+
+      // Handle label click - manually toggle to ensure it works
+      label.addEventListener("click", (e) => {
+        // Stop propagation to prevent item click handler
+        e.stopPropagation();
+
+        if (isRequired) {
+          // Prevent toggling required columns
+          e.preventDefault();
+          return;
+        }
+
+        // Prevent default htmlFor behavior to avoid double-toggling
+        // We'll handle the toggle manually
+        e.preventDefault();
+
+        // Manually toggle checkbox
+        checkbox.checked = !checkbox.checked;
+
+        // Trigger change event to ensure our handler fires
+        const changeEvent = new Event("change", {
+          bubbles: true,
+          cancelable: true,
+        });
+        checkbox.dispatchEvent(changeEvent);
+      });
+
+      // Handle item click - only if clicking on the item itself (not checkbox or label)
+      item.addEventListener("click", (e) => {
+        // If clicking directly on checkbox or label, let their handlers deal with it
+        if (
+          e.target === checkbox ||
+          e.target === label ||
+          checkbox.contains(e.target) ||
+          label.contains(e.target)
+        ) {
+          return;
+        }
+        // If clicking on the item container, toggle the checkbox
+        if (!isRequired) {
+          checkbox.checked = !checkbox.checked;
+          checkbox.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+      });
+    });
+
+    // Add action buttons
+    const actions = document.createElement("div");
+    actions.className =
+      this.theme.columnVisibilityActions || "column-visibility-actions";
+
+    const showAllBtn = document.createElement("button");
+    showAllBtn.textContent = "Show All";
+    const actionButtonClass =
+      this.theme.columnVisibilityActionButton ||
+      "column-visibility-action-button";
+    showAllBtn.className = `${
+      this.theme.button || "btn btn-sm"
+    } ${actionButtonClass}`;
+    showAllBtn.addEventListener("click", () => {
+      this.showAllColumns();
+      // Update all checkboxes
+      this.columns.forEach((col) => {
+        const cb = document.getElementById(`col-vis-${col.name}`);
+        if (cb) cb.checked = this.isColumnVisible(col.name);
+      });
+    });
+
+    const hideAllBtn = document.createElement("button");
+    hideAllBtn.textContent = "Hide All";
+    hideAllBtn.className = `${
+      this.theme.button || "btn btn-sm"
+    } ${actionButtonClass}`;
+    hideAllBtn.addEventListener("click", () => {
+      this.hideAllColumns();
+      // Update all checkboxes
+      this.columns.forEach((col) => {
+        const cb = document.getElementById(`col-vis-${col.name}`);
+        if (cb) cb.checked = this.isColumnVisible(col.name);
+      });
+    });
+
+    const resetBtn = document.createElement("button");
+    resetBtn.textContent = "Reset";
+    resetBtn.className = `${
+      this.theme.button || "btn btn-sm"
+    } ${actionButtonClass}`;
+    resetBtn.addEventListener("click", () => {
+      this.resetColumnVisibility();
+      // Update all checkboxes
+      this.columns.forEach((col) => {
+        const cb = document.getElementById(`col-vis-${col.name}`);
+        if (cb) cb.checked = this.isColumnVisible(col.name);
+      });
+    });
+
+    actions.appendChild(showAllBtn);
+    actions.appendChild(hideAllBtn);
+    actions.appendChild(resetBtn);
+
+    dropdown.appendChild(columnsList);
+    dropdown.appendChild(actions);
+
+    // Find the button's parent container (controls container) for positioning
+    // Try to find controls container, fallback to button's parent
+    let buttonParent =
+      button.closest('[class*="controls"]') ||
+      button.closest(".controls-container") ||
+      button.parentElement;
+
+    // Ensure parent has relative positioning for absolute dropdown
+    const parentStyle = getComputedStyle(buttonParent);
+    if (parentStyle.position === "static") {
+      buttonParent.style.position = "relative";
+    }
+
+    // Append dropdown to button's parent container for relative positioning
+    buttonParent.appendChild(dropdown);
+
+    // Function to update dropdown position
+    const updateDropdownPosition = () => {
+      if (!buttonParent) return;
+
+      const rect = button.getBoundingClientRect();
+      const parentRect = buttonParent.getBoundingClientRect();
+
+      // Use absolute positioning relative to parent
+      dropdown.style.position = "absolute";
+      dropdown.style.top = `${rect.bottom - parentRect.top + 4}px`;
+      dropdown.style.left = `${rect.left - parentRect.left}px`;
+
+      // Ensure dropdown doesn't go off-screen to the right
+      const dropdownWidth = dropdown.offsetWidth || 200;
+      const rightEdge = rect.left - parentRect.left + dropdownWidth;
+      const parentWidth = buttonParent.offsetWidth;
+
+      if (rightEdge > parentWidth) {
+        // Align to right edge of button instead
+        dropdown.style.left = `${
+          rect.right - parentRect.left - dropdownWidth
+        }px`;
+      }
+    };
+
+    // Toggle dropdown on button click
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isVisible =
+        dropdown.style.display !== "none" && dropdown.style.display !== "";
+
+      if (isVisible) {
+        dropdown.style.display = "none";
+      } else {
+        // Update position before showing
+        updateDropdownPosition();
+        dropdown.style.display = "block";
+
+        // Update checkbox states
+        this.columns.forEach((col) => {
+          const cb = document.getElementById(`col-vis-${col.name}`);
+          if (cb) {
+            cb.checked = this.isColumnVisible(col.name);
+          }
+        });
+      }
+    });
+
+    // Update position on scroll (if dropdown is visible)
+    const handleScroll = () => {
+      if (dropdown.style.display !== "none" && dropdown.style.display !== "") {
+        updateDropdownPosition();
+      }
+    };
+
+    // Listen to scroll events on window and scrollable parents
+    window.addEventListener("scroll", handleScroll, true);
+    if (buttonParent) {
+      buttonParent.addEventListener("scroll", handleScroll, true);
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!dropdown.contains(e.target) && !button.contains(e.target)) {
+        dropdown.style.display = "none";
+      }
     });
   }
 
   //===================
   // FETCH DATA
   //===================
-  getRangeFilters() {
-    const filters = {};
-    for (const [key] of Object.entries(this.rangeFilterFields)) {
-      const min = document.querySelector(`[data-filter-min="${key}"]`)?.value;
-      const max = document.querySelector(`[data-filter-max="${key}"]`)?.value;
 
-      if (min || max) {
-        filters[key] = { min, max };
-      }
-    }
-    return filters;
-  }
-
-  async fetchData({ applyRangeFilters = false } = {}) {
+  async fetchData() {
     // Show loading spinner immediately when enabled
     if (this.enableLoadingSpinner) {
       this.toggleLoadingSpinner(true);
@@ -1118,14 +2097,6 @@ export default class DataTable {
       }
     }
 
-    if (applyRangeFilters) {
-      params.append("rangeFilters", JSON.stringify(this.getRangeFilters()));
-    }
-
-    this.dispatchEvent(DataTableEvents.LOADING, {
-      queryParams: params.toString(),
-    });
-
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
@@ -1143,19 +2114,24 @@ export default class DataTable {
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const json = await res.json();
-      this.data = json[this.dataSrc] || [];
+      const newData = json[this.dataSrc] || [];
 
-      this.dispatchEvent(DataTableEvents.LOADED, {
-        data: this.data,
-        page: this.currentPage,
-        totalItems: json.total || this.data.length,
-        response: json,
-      });
+      // For infinite scroll, append data instead of replacing
+      if (this.infiniteScroll && this.currentPage > 1) {
+        this.data = [...(this.data || []), ...newData];
+      } else {
+        this.data = newData;
+      }
 
       if (this.data.length === 0) {
         this.showEmptyStateInTable("No records found.");
       } else {
-        this.renderTable(this.data);
+        // For infinite scroll, only render new rows if not first page
+        if (this.infiniteScroll && this.currentPage > 1) {
+          this.appendRows(newData);
+        } else {
+          this.renderTable(this.data);
+        }
       }
 
       if (this.pagination) {
@@ -1163,10 +2139,6 @@ export default class DataTable {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      this.dispatchEvent(DataTableEvents.ERROR, {
-        error: error,
-        requestParams: params.toString(),
-      });
 
       // Optionally show error state
       if (this.data.length === 0) {
@@ -1236,19 +2208,14 @@ export default class DataTable {
       thead.classList.add(...(this.theme.headerSticky?.split(" ") || []));
     }
 
-    // Filter out columns that are not visible
-    const visibleColumns = this.columns.filter((c) => c.visible !== false);
+    // Filter out columns that are not visible (respect column visibility state)
+    const visibleColumns = this.getVisibleColumns();
 
     const hasGroups = this.columnGroups?.length > 0;
 
     // Render group headers if applicable
     if (hasGroups) {
       this.renderGroupHeaders(thead, visibleColumns);
-    }
-
-    // Render filter inputs if applicable
-    if (this.columnFiltering) {
-      this.renderFilterInputs(thead, visibleColumns);
     }
 
     // Always render column headers
@@ -1303,139 +2270,6 @@ export default class DataTable {
     }
   }
 
-  renderFilterInputs(thead, visibleColumns) {
-    const filterRow = thead.insertRow();
-    filterRow.className = this.theme.filterRow || "";
-    this.columnFilters = this.columnFilters || {};
-
-    // Range filter
-    if (Object.keys(this.rangeFilterFields || {}).length > 0) {
-      const rangeRow = thead.insertRow();
-      const rangeTh = document.createElement("th");
-      rangeTh.colSpan = 100;
-
-      const wrapper = document.createElement("div");
-      wrapper.className = "w-full";
-
-      // Toggle Header
-      const toggleHeader = document.createElement("div");
-      toggleHeader.className = this.theme.advancedFilterToggle;
-      toggleHeader.innerHTML = `
-        <span class="text-gray-700 dark:text-white">Advanced Filters</span>
-        <svg id="range-toggle-arrow" xmlns="http://www.w3.org/2000/svg" width="14" height="14" class="${this.theme.advancedFilterArrow}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>`;
-
-      // Container for filter fields
-      const container = document.createElement("div");
-      container.className = this.theme.advancedFilterRow;
-
-      for (const [field, config] of Object.entries(this.rangeFilterFields)) {
-        const type = config.type === "number" ? "number" : "date";
-        const label = config.label || field;
-
-        const group = document.createElement("div");
-        group.className = this.theme.advancedFilterDiv;
-        const labelEl = document.createElement("label");
-        labelEl.className = this.theme.advancedFilterLabel;
-        labelEl.textContent = label;
-
-        const inputsWrapper = document.createElement("div");
-        inputsWrapper.className = this.theme.advancedFilterInputs;
-
-        const inputMin = document.createElement("input");
-        inputMin.type = type;
-        inputMin.placeholder = config.placeholderMin || "From";
-        inputMin.dataset.filterMin = field;
-        inputMin.className = this.theme.advancedFilterInput;
-
-        const inputMax = document.createElement("input");
-        inputMax.type = type;
-        inputMax.placeholder = config.placeholderMax || "To";
-        inputMax.dataset.filterMax = field;
-        inputMax.className = this.theme.advancedFilterInput;
-
-        inputsWrapper.appendChild(inputMin);
-        inputsWrapper.appendChild(inputMax);
-        group.appendChild(labelEl);
-        group.appendChild(inputsWrapper);
-        container.appendChild(group);
-      }
-
-      // Add submit button
-      const buttonsWrapper = document.createElement("div");
-      buttonsWrapper.className = this.theme.advancedFilterButtonContainer;
-      const submitBtn = document.createElement("button");
-      submitBtn.textContent = "Apply Filters";
-      submitBtn.type = "button";
-      submitBtn.className = this.theme.advancedFilterButton;
-      submitBtn.addEventListener("click", () => {
-        this.fetchData({ applyRangeFilters: true });
-      });
-
-      buttonsWrapper.appendChild(submitBtn);
-      container.appendChild(buttonsWrapper);
-
-      const isTailwind = this.theme.framework === "tailwind";
-      const isBootstrap = this.theme.framework === "bootstrap";
-      const isDaisyUI = this.theme.framework === "daisyui";
-
-      toggleHeader.addEventListener("click", () => {
-        // container.classList.toggle("hidden");
-        if (isTailwind) {
-          container.classList.toggle("max-h-0");
-          container.classList.toggle("opacity-0");
-          container.classList.toggle("max-h-[1000px]");
-          container.classList.toggle("opacity-100");
-          container.classList.toggle("py-0");
-          container.classList.toggle("py-3");
-        }
-        if (isBootstrap) {
-          container.classList.toggle("d-none");
-        }
-        const arrow = toggleHeader.querySelector("#range-toggle-arrow");
-        arrow.classList.toggle("rotate-180");
-      });
-
-      wrapper.appendChild(toggleHeader);
-      wrapper.appendChild(container);
-      rangeTh.appendChild(wrapper);
-      rangeRow.appendChild(rangeTh);
-    }
-
-    visibleColumns.forEach((column) => {
-      const th = document.createElement("th");
-      th.className = this.theme.headerCell || "";
-
-      if (this.filterableColumns.includes(column.name)) {
-        const input = document.createElement("input");
-        input.type = "search";
-        input.placeholder = `Filter ${column.label}`;
-        input.className = this.theme.filterInput || "";
-
-        // Debounce the input event to prevent excessive filtering
-        input.addEventListener(
-          "input",
-          this.debounce((e) => {
-            this.columnFilters[column.name] = e.target.value;
-            this.dispatchEvent(DataTableEvents.FILTER, {
-              column: column,
-              value: e.target.value,
-              filters: this.columnFilters,
-              timestamp: new Date().toISOString(),
-              tableId: this.table.id || null,
-              searchDelay: this.searchDelay,
-            });
-            this.fetchData();
-          }, this.searchDelay)
-        );
-
-        th.appendChild(input);
-      }
-
-      filterRow.appendChild(th);
-    });
-  }
   setFilter(key, value, silent = false) {
     this.filters[key] = value;
     if (!silent) {
@@ -1496,6 +2330,11 @@ export default class DataTable {
         // Add default sort icon (neutral)
         const iconSpan = document.createElement("span");
         iconSpan.className = "sort-icon ml-2";
+        // Fixed width to prevent layout shifts when icon changes
+        iconSpan.style.cssText =
+          "margin-left: 4px; display: inline-flex; align-items: center; width: 20px; height: 20px; flex-shrink: 0;";
+        iconSpan.setAttribute("role", "button");
+        iconSpan.setAttribute("tabindex", "0");
         iconSpan.innerHTML = this.getNeutralSortIcon();
         th.appendChild(iconSpan);
 
@@ -1519,16 +2358,6 @@ export default class DataTable {
                 : this.getDescSortIcon();
           }
 
-          // Dispatch sort event
-          this.dispatchEvent(DataTableEvents.SORT, {
-            column: column.name,
-            label: column.label,
-            index: this.columns.indexOf(column),
-            direction: newOrder,
-            timestamp: new Date().toISOString(),
-            tableId: this.table.id || null,
-          });
-
           if (this.enableSaveState) {
             this.saveState();
           }
@@ -1539,12 +2368,54 @@ export default class DataTable {
 
       headerRow.appendChild(th);
     });
+
+    // Render column filter row if columnFiltering is enabled
+    if (
+      this.columnFiltering &&
+      this.filterableColumns &&
+      Array.isArray(this.filterableColumns) &&
+      this.filterableColumns.length > 0
+    ) {
+      const filterRow = thead.insertRow();
+      filterRow.className = this.theme.filterRow || "";
+
+      // Use getVisibleColumns() to respect column visibility
+      const visibleCols = this.getVisibleColumns();
+      visibleCols.forEach((column) => {
+        const td = document.createElement("td");
+        td.className = this.theme.headerCell || ""; // Use headerCell styling for filter cells
+
+        // Check if this column should have a filter input
+        if (this.filterableColumns.includes(column.name)) {
+          const filterInput = document.createElement("input");
+          filterInput.type = "text";
+          filterInput.className =
+            this.theme.filterInput ||
+            "column-search form-control form-control-sm";
+          filterInput.placeholder = `Filter ${column.label || column.name}...`;
+          filterInput.dataset.column = column.name;
+          filterInput.dataset.columnFilter = column.name; // For reset functionality
+
+          // Set initial value if filter already exists
+          if (this.columnFilters[column.name]) {
+            filterInput.value = this.columnFilters[column.name];
+          }
+
+          td.appendChild(filterInput);
+        }
+
+        filterRow.appendChild(td);
+      });
+
+      // Bind filter inputs after creating them
+      this.bindColumnSearchInputs();
+    }
   }
   getNeutralSortIcon() {
     return `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
              xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" style="color: #9ca3af;">
+             stroke-linecap="round" stroke-linejoin="round" style="color: #9ca3af; display: block; flex-shrink: 0;">
             <path d="m3 16 4 4 4-4" />
             <path d="M7 20V4" />
             <path d="m21 8-4-4-4 4" />
@@ -1557,7 +2428,7 @@ export default class DataTable {
     return `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
              xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" style="color: #4b5563;">
+             stroke-linecap="round" stroke-linejoin="round" style="color: #4b5563; display: block; flex-shrink: 0;">
             <path d="m3 8 4-4 4 4" />
             <path d="M7 4v16" />
             <path d="M11 12h4" />
@@ -1571,7 +2442,7 @@ export default class DataTable {
     return `
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
              xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="2"
-             stroke-linecap="round" stroke-linejoin="round" style="color: #4b5563;">
+             stroke-linecap="round" stroke-linejoin="round" style="color: #4b5563; display: block; flex-shrink: 0;">
             <path d="m3 16 4 4 4-4" />
             <path d="M7 20V4" />
             <path d="M11 4h4" />
@@ -1624,9 +2495,9 @@ export default class DataTable {
         tr.classList.add("opacity-0", "transition", "duration-300");
       }
 
-      // Create and append <td>s
+      // Create and append <td>s (only for visible columns)
       this.columns.forEach((column) => {
-        if (column.visible === false) return;
+        if (!this.isColumnVisible(column.name)) return;
 
         const td = document.createElement("td");
         this.renderCell(td, row, column, rowIndex);
@@ -1653,6 +2524,84 @@ export default class DataTable {
       }
     });
   }
+
+  appendRows(rows) {
+    const tbody = this.table.querySelector("tbody");
+    if (!tbody) {
+      console.error("DataTable: tbody not found");
+      return;
+    }
+
+    if (!this.columns?.length) {
+      console.error("Columns configuration is missing or empty");
+      return;
+    }
+
+    const isTailwind = this.theme.framework === "tailwind";
+    const isBootstrap = this.theme.framework === "bootstrap";
+    const isDaisyUI = this.theme.framework === "daisyui";
+
+    // Get current row count for animation delay
+    const existingRowCount = tbody.querySelectorAll("tr").length;
+
+    rows.forEach((row, rowIndex) => {
+      const tr = document.createElement("tr");
+      tr.dataset.id = row.id;
+
+      // Apply row(theme) classes
+      tr.className = this.theme.row || "";
+      if (typeof this.theme.rowClass === "function") {
+        tr.classList.add(
+          ...this.theme.rowClass(row, existingRowCount + rowIndex).split(" ")
+        );
+      } else if (typeof this.theme.rowClass === "string") {
+        tr.classList.add(...this.theme.rowClass.split(" "));
+      }
+
+      // Add initial hidden/fade classes
+      if (isTailwind) {
+        tr.classList.add(
+          "opacity-0",
+          "translate-y-2",
+          "transition-all",
+          "duration-300"
+        );
+      }
+
+      if (isBootstrap) {
+        tr.classList.add("opacity-0", "transition", "duration-300");
+      }
+
+      // Create and append <td>s (only for visible columns)
+      this.columns.forEach((column) => {
+        if (!this.isColumnVisible(column.name)) return;
+
+        const td = document.createElement("td");
+        this.renderCell(td, row, column, existingRowCount + rowIndex);
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+
+      // Animate row with stagger
+      const delay = rowIndex * 50;
+
+      if (isTailwind) {
+        setTimeout(() => {
+          tr.classList.remove("opacity-0", "translate-y-2");
+          tr.classList.add("opacity-100", "translate-y-0");
+        }, delay);
+      }
+
+      if (isBootstrap) {
+        setTimeout(() => {
+          tr.classList.remove("opacity-0");
+          tr.classList.add("opacity-100");
+        }, delay);
+      }
+    });
+  }
+
   createTBody() {
     const tbody = document.createElement("tbody");
     tbody.id = "table-body";
@@ -1852,12 +2801,6 @@ export default class DataTable {
         if (this.currentPage > 1) {
           this.currentPage--;
 
-          // Dispatch page change event
-          this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-            fromPage: this.currentPage + 1,
-            toPage: this.currentPage,
-          });
-
           // Refetch data for the new page
           this.fetchData();
         }
@@ -1869,12 +2812,6 @@ export default class DataTable {
       this.nextBtn.addEventListener("click", () => {
         this.currentPage++;
 
-        // Dispatch page change event
-        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-          fromPage: this.currentPage - 1,
-          toPage: this.currentPage,
-        });
-
         // Refetch data for the new page
         this.fetchData();
       });
@@ -1882,6 +2819,9 @@ export default class DataTable {
   }
 
   updatePagination({ current_page, last_page, total }) {
+    // Store totalPages for infinite scroll
+    this.totalPages = last_page;
+
     if (this.pageInfo) {
       // Update page info text
       this.pageInfo.textContent = `Page ${current_page} of ${last_page}`;
@@ -1926,20 +2866,14 @@ export default class DataTable {
     const prevBtn = this.createNavButton("«", current_page > 1, () => {
       const prevPage = this.currentPage;
       this.currentPage = current_page - 1;
-      this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-        fromPage: prevPage,
-        toPage: this.currentPage,
-      });
+
       this.fetchData();
     });
 
     const nextBtn = this.createNavButton("»", current_page < last_page, () => {
       const prevPage = this.currentPage;
       this.currentPage = current_page + 1;
-      this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-        fromPage: prevPage,
-        toPage: this.currentPage,
-      });
+
       this.fetchData();
     });
     this.paginationWrapper.className =
@@ -1966,10 +2900,7 @@ export default class DataTable {
         btn.addEventListener("click", () => {
           const prevPage = this.currentPage;
           this.currentPage = page;
-          this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-            fromPage: prevPage,
-            toPage: this.currentPage,
-          });
+
           this.fetchData();
         });
       } else {
@@ -1994,10 +2925,7 @@ export default class DataTable {
       this.createNavButton("«", current_page > 1, () => {
         const prevPage = this.currentPage;
         this.currentPage--;
-        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-          fromPage: prevPage,
-          toPage: this.currentPage,
-        });
+
         this.fetchData();
       })
     );
@@ -2021,10 +2949,7 @@ export default class DataTable {
       this.createNavButton("»", current_page < last_page, () => {
         const prevPage = this.currentPage;
         this.currentPage++;
-        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-          fromPage: prevPage,
-          toPage: this.currentPage,
-        });
+
         this.fetchData();
       })
     );
@@ -2054,10 +2979,7 @@ export default class DataTable {
   goToPage(page) {
     const prevPage = this.currentPage;
     this.currentPage = page;
-    this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-      fromPage: prevPage,
-      toPage: this.currentPage,
-    });
+
     this.fetchData();
   }
 
@@ -2136,10 +3058,6 @@ export default class DataTable {
         this.scrollLoader.style.display = "block";
 
         this.currentPage++;
-        this.dispatchEvent(DataTableEvents.PAGE_CHANGE, {
-          fromPage: this.currentPage - 1,
-          toPage: this.currentPage,
-        });
 
         this.fetchData().finally(() => {
           this.infiniteScrollFetching = false;
@@ -2151,9 +3069,33 @@ export default class DataTable {
     container.addEventListener("scroll", onScroll);
 
     // Hide pagination UI if configured
-    if (this.hidePaginationOnScroll && this.paginationContainer) {
-      this.paginationContainer.style.display = "none";
-    }
+    // Use setTimeout to ensure pagination is initialized first (initPagination runs before initInfiniteScroll)
+    setTimeout(() => {
+      if (this.hidePaginationOnScroll && this.pagination) {
+        // Try to find pagination container by multiple methods
+        let paginationEl = this.paginationContainer;
+
+        if (!paginationEl && this.paginationConfig?.container?.id) {
+          paginationEl = document.getElementById(
+            this.paginationConfig.container.id
+          );
+        }
+
+        if (!paginationEl) {
+          // Fallback: try common pagination container IDs
+          paginationEl =
+            document.getElementById(`${this.tableId}-pagination-container`) ||
+            document.getElementById(`${this.tableId}-pagination`);
+        }
+
+        if (paginationEl) {
+          paginationEl.style.display = "none";
+        } else if (this.paginationWrapper) {
+          // If container not found, hide wrapper directly
+          this.paginationWrapper.style.display = "none";
+        }
+      }
+    }, 100); // Small delay to ensure DOM is ready
   }
   hasMorePages() {
     return !this.totalPages || this.currentPage < this.totalPages;
@@ -2179,7 +3121,8 @@ export default class DataTable {
 
   getExportableColumns(type = "all") {
     return this.columns.filter((col) => {
-      if (col.visible === false) return false;
+      // Check column visibility state first
+      if (!this.isColumnVisible(col.name)) return false;
 
       // If per-export-type control is defined (object like { print: false, csv: true })
       if (col.export && typeof col.export === "object") {
@@ -2210,9 +3153,41 @@ export default class DataTable {
       worksheet.addRow(visibleColumns.map((col) => col.label || col.name));
 
       const exportableExcelConfig = {
-        fileName: this.exportable.fileName.print,
-        chunkSize: this.exportable.chunkSize.print,
+        fileName: this.exportable.fileName.excel,
+        chunkSize: this.exportable.chunkSize.excel,
       };
+
+      // Get total count for progress tracking
+      const totalCountParams = new URLSearchParams({
+        search: this.search,
+        sortBy: this.sort,
+        order: this.order,
+        columnFilters: JSON.stringify(this.columnFilters),
+        export: "true",
+        perPage: "1", // Just to get total count
+      });
+
+      let totalRecords = 0;
+      try {
+        const countResponse = await fetch(
+          `${this.url}?${totalCountParams.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          }
+        );
+        const countJson = await countResponse.json();
+        totalRecords = countJson.total || countJson.meta?.total || 0;
+      } catch (e) {
+        console.warn("Could not fetch total count, progress will be estimated");
+      }
+
+      // Show progress UI
+      this.showExportProgress("excel", totalRecords || 100000);
 
       let page = 1;
       const chunkSize = exportableExcelConfig.chunkSize;
@@ -2229,6 +3204,11 @@ export default class DataTable {
       });
 
       while (hasMoreData && totalRowsExported < maxExcelRecords) {
+        // Check for cancellation
+        if (this.exportProgress.cancelController?.signal.aborted) {
+          throw new Error("Export cancelled by user");
+        }
+
         // Adjust chunkSize dynamically if near maxExcelRecords limit
         const rowsLeft = maxExcelRecords - totalRowsExported;
         const currentChunkSize = Math.min(chunkSize, rowsLeft);
@@ -2236,7 +3216,9 @@ export default class DataTable {
         exportParams.set("page", page);
         exportParams.set("perPage", currentChunkSize);
 
-        const controller = new AbortController();
+        // Use the cancel controller for fetch
+        const controller =
+          this.exportProgress.cancelController || new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
         const response = await fetch(`${this.url}?${exportParams.toString()}`, {
@@ -2254,7 +3236,7 @@ export default class DataTable {
 
         if (!response.ok) {
           throw new Error(
-            `PDF export data request failed with status: ${response.status}`
+            `Excel export data request failed with status: ${response.status}`
           );
         }
 
@@ -2284,6 +3266,10 @@ export default class DataTable {
           totalRowsExported++;
         });
 
+        // Update progress
+        const progressTotal = totalRecords || maxExcelRecords;
+        this.updateExportProgress(totalRowsExported, progressTotal);
+
         // Check if fewer rows returned than requested or max reached
         hasMoreData =
           hasMoreData &&
@@ -2306,9 +3292,29 @@ export default class DataTable {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
 
+      // Hide progress and call completion callback
+      this.hideExportProgress();
+      if (this.exportable.onExportComplete) {
+        try {
+          this.exportable.onExportComplete("excel", fileName);
+        } catch (error) {
+          console.error("Error in onExportComplete callback:", error);
+        }
+      }
+
       console.log("Excel export completed successfully");
     } catch (error) {
-      console.error("Error exporting data:", error);
+      this.hideExportProgress();
+      if (this.exportable.onExportError) {
+        try {
+          this.exportable.onExportError(error, "excel");
+        } catch (err) {
+          console.error("Error in onExportError callback:", err);
+        }
+      }
+      if (error.message !== "Export cancelled by user") {
+        console.error("Error exporting data:", error);
+      }
     }
   }
 
@@ -2329,14 +3335,46 @@ export default class DataTable {
         export: "true",
       });
 
+      // Get total count for progress tracking
+      const totalCountParams = new URLSearchParams({
+        search: this.search,
+        sortBy: this.sort,
+        order: this.order,
+        columnFilters: JSON.stringify(this.columnFilters),
+        export: "true",
+        perPage: "1",
+      });
+
+      let totalRecords = 0;
+      try {
+        const countResponse = await fetch(
+          `${this.url}?${totalCountParams.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          }
+        );
+        const countJson = await countResponse.json();
+        totalRecords = countJson.total || countJson.meta?.total || 0;
+      } catch (e) {
+        console.warn("Could not fetch total count, progress will be estimated");
+      }
+
+      // Show progress UI
+      this.showExportProgress("csv", totalRecords || 100000);
+
       // Create a CSV content builder with headers
       const headers = visibleColumns.map(
         (col) => `"${(col.name || col.label).replace(/"/g, '""')}"`
       );
 
       const exportableCsvConfig = {
-        fileName: this.exportable.fileName.print,
-        chunkSize: this.exportable.chunkSize.print,
+        fileName: this.exportable.fileName.csv,
+        chunkSize: this.exportable.chunkSize.csv,
       };
 
       let csvContent = headers.join(",") + "\r\n";
@@ -2346,12 +3384,18 @@ export default class DataTable {
       let totalProcessed = 0;
 
       while (hasMoreData) {
+        // Check for cancellation
+        if (this.exportProgress.cancelController?.signal.aborted) {
+          throw new Error("Export cancelled by user");
+        }
+
         // Update pagination parameters for this chunk
         exportParams.set("page", page);
         exportParams.set("perPage", chunkSize);
 
         try {
-          const controller = new AbortController();
+          const controller =
+            this.exportProgress.cancelController || new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
           const response = await fetch(
@@ -2372,7 +3416,7 @@ export default class DataTable {
 
           if (!response.ok) {
             throw new Error(
-              `PDF export data request failed with status: ${response.status}`
+              `CSV export data request failed with status: ${response.status}`
             );
           }
 
@@ -2382,6 +3426,10 @@ export default class DataTable {
           // Check if this is the last chunk
           hasMoreData = dataChunk.length === chunkSize;
           totalProcessed += dataChunk.length;
+
+          // Update progress
+          const progressTotal = totalRecords || 100000;
+          this.updateExportProgress(totalProcessed, progressTotal);
 
           // Process and add this chunk of data to CSV content
           if (dataChunk.length > 0) {
@@ -2430,19 +3478,40 @@ export default class DataTable {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${exportableCsvConfig.fileName}.csv`;
+      const fileName = `${exportableCsvConfig.fileName}.csv`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url); // Clean up the URL object
 
+      // Hide progress and call completion callback
+      this.hideExportProgress();
+      if (this.exportable.onExportComplete) {
+        try {
+          this.exportable.onExportComplete("csv", fileName);
+        } catch (error) {
+          console.error("Error in onExportComplete callback:", error);
+        }
+      }
+
       console.log(`CSV export completed with ${totalProcessed} records`);
     } catch (error) {
-      console.error("Error downloading CSV:", error);
-      alert("Error downloading CSV. Please try again.");
+      this.hideExportProgress();
+      if (this.exportable.onExportError) {
+        try {
+          this.exportable.onExportError(error, "csv");
+        } catch (err) {
+          console.error("Error in onExportError callback:", err);
+        }
+      }
+      if (error.message !== "Export cancelled by user") {
+        console.error("Error downloading CSV:", error);
+        alert("Error downloading CSV. Please try again.");
 
-      // Fallback to current page only if full export fails
-      this.downloadCurrentPageCSV();
+        // Fallback to current page only if full export fails
+        this.downloadCurrentPageCSV();
+      }
     }
   }
   downloadCurrentPageCSV() {
@@ -2499,9 +3568,9 @@ export default class DataTable {
 
   printTable() {
     try {
+      // Don't show progress modal for print - it opens in a new window
       this.toggleLoadingSpinner(true);
 
-      const title = this.exportable.title.print;
       const visibleColumns = this.getExportableColumns("print");
 
       // Create a new window for printing
@@ -2518,7 +3587,7 @@ export default class DataTable {
             <head>
                 <meta charset="UTF-8">
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Print: ${title}</title>
+                <title>Print Report</title>
                 <style>
                     @media print {
                         @page {
@@ -2630,10 +3699,8 @@ export default class DataTable {
                 </style>
             </head>
             <body>
-                <div class="print-header">
-                    <h1 class="print-title">${title}</h1>
-                    <p class="print-meta">Generated on: ${new Date().toLocaleString()}</p>
-                </div>
+                <!-- Title and metadata removed - use customElements instead -->
+                <!-- Users can add titles via customElements.print if needed -->
 
                 <div class="loading">Loading data for printing...</div>
 
@@ -2650,9 +3717,13 @@ export default class DataTable {
                     </tbody>
                 </table>
 
-                <div class="print-footer">
+                ${
+                  this.exportable.footer
+                    ? `<div class="print-footer">
                     Page <span class="page-num"></span>
-                </div>
+                </div>`
+                    : ""
+                }
 
                 <div class="action-buttons no-print">
                     <button onclick="window.print();">Print</button>
@@ -2687,7 +3758,6 @@ export default class DataTable {
       const loadingDiv = printWindow.document.querySelector(".loading");
 
       const exportablePrintConfig = {
-        title: this.exportable.title.print,
         fileName: this.exportable.fileName.print,
         chunkSize: this.exportable.chunkSize.print,
         footer: this.exportable.footer,
@@ -2789,14 +3859,51 @@ export default class DataTable {
         loadingDiv.style.display = "none";
         printTbody.innerHTML = tableContent;
 
+        // Apply custom elements to print window
+        if (
+          this.exportable?.customElements?.print &&
+          Array.isArray(this.exportable.customElements.print)
+        ) {
+          applyElementsToPrint(
+            printWindow,
+            this.exportable.customElements.print
+          );
+        }
+
         // Automatically print after data is ready
         printWindow.print();
+
+        // Call completion callback (no progress modal for print)
+        if (this.exportable.onExportComplete) {
+          try {
+            this.exportable.onExportComplete(
+              "print",
+              this.exportable.fileName.print
+            );
+          } catch (error) {
+            console.error("Error in onExportComplete callback:", error);
+          }
+        }
       }
+
+      this.toggleLoadingSpinner(false);
     } catch (error) {
-      console.error("Error preparing print data:", error);
-      printWindow.document.querySelector(
-        ".loading"
-      ).innerHTML = `<div style="color:red;">Error preparing print data: ${error.message}</div>`;
+      // Call error callback (no progress modal for print)
+      if (this.exportable.onExportError) {
+        try {
+          this.exportable.onExportError(error, "print");
+        } catch (err) {
+          console.error("Error in onExportError callback:", err);
+        }
+      }
+      if (error.message !== "Export cancelled by user") {
+        console.error("Error preparing print data:", error);
+        if (printWindow && printWindow.document) {
+          printWindow.document.querySelector(
+            ".loading"
+          ).innerHTML = `<div style="color:red;">Error preparing print data: ${error.message}</div>`;
+        }
+      }
     }
   }
 
@@ -2819,11 +3926,9 @@ export default class DataTable {
       });
 
       const exportableConfig = {
-        title: this.exportable.title.pdf || "PDF Export",
         fileName: this.exportable.fileName.pdf || "datatable.pdf",
         chunkSize: this.exportable.chunkSize.pdf || 500,
         footer: this.exportable.footer || false,
-        watermark: this.exportable.watermark || false,
       };
 
       // Call fetchDataForPdf with single config object
@@ -2835,7 +3940,39 @@ export default class DataTable {
   }
   async fetchDataForPdf(config, visibleColumns, exportParams) {
     try {
-      const { fileName, chunkSize, footer, title } = config;
+      const { fileName, chunkSize, footer } = config;
+
+      // Get total count for progress tracking
+      const totalCountParams = new URLSearchParams({
+        search: this.search,
+        sortBy: this.sort,
+        order: this.order,
+        columnFilters: JSON.stringify(this.columnFilters),
+        export: "true",
+        perPage: "1",
+      });
+
+      let totalRecords = 0;
+      try {
+        const countResponse = await fetch(
+          `${this.url}?${totalCountParams.toString()}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          }
+        );
+        const countJson = await countResponse.json();
+        totalRecords = countJson.total || countJson.meta?.total || 0;
+      } catch (e) {
+        console.warn("Could not fetch total count, progress will be estimated");
+      }
+
+      // Show progress UI
+      this.showExportProgress("pdf", totalRecords || 100000);
 
       const allData = [];
       let page = 1;
@@ -2843,11 +3980,17 @@ export default class DataTable {
       let hasMoreData = true;
 
       while (hasMoreData) {
+        // Check for cancellation
+        if (this.exportProgress.cancelController?.signal.aborted) {
+          throw new Error("Export cancelled by user");
+        }
+
         exportParams.set("page", page);
         exportParams.set("perPage", chunkSize);
 
         try {
-          const controller = new AbortController();
+          const controller =
+            this.exportProgress.cancelController || new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
 
           const response = await fetch(
@@ -2881,6 +4024,10 @@ export default class DataTable {
 
           totalProcessed += dataChunk.length;
 
+          // Update progress
+          const progressTotal = totalRecords || 100000;
+          this.updateExportProgress(totalProcessed, progressTotal);
+
           const processedChunk = dataChunk.map((row) => {
             const pdfRow = {};
             visibleColumns.forEach((column) => {
@@ -2909,27 +4056,44 @@ export default class DataTable {
       }
 
       if (allData.length === 0) {
+        this.hideExportProgress();
         console.warn("No data to export.");
         return;
       }
 
-      this.generatePdf({
-        title,
+      await this.generatePdf({
         fileName,
         visibleColumns,
         data: allData,
         totalProcessed,
         footer,
       });
+
+      // Hide progress and call completion callback
+      this.hideExportProgress();
+      if (this.exportable.onExportComplete) {
+        try {
+          this.exportable.onExportComplete("pdf", fileName);
+        } catch (error) {
+          console.error("Error in onExportComplete callback:", error);
+        }
+      }
     } catch (error) {
-      console.error("PDF export failed:", error);
+      this.hideExportProgress();
+      if (this.exportable.onExportError) {
+        try {
+          this.exportable.onExportError(error, "pdf");
+        } catch (err) {
+          console.error("Error in onExportError callback:", err);
+        }
+      }
+      if (error.message !== "Export cancelled by user") {
+        console.error("PDF export failed:", error);
+      }
     }
   }
-  generatePdf(config) {
-    const { title, fileName, visibleColumns, data, totalProcessed, footer } =
-      config;
-
-    // const doc = new jsPDF();
+  async generatePdf(config) {
+    const { fileName, visibleColumns, data, totalProcessed, footer } = config;
 
     const pdfExportOptions = {
       orientation: this.exportable.pdfOptions.orientation,
@@ -2946,6 +4110,37 @@ export default class DataTable {
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
+
+    // Pre-load all images from customElements before PDF generation
+    if (
+      this.exportable?.customElements?.pdf &&
+      Array.isArray(this.exportable.customElements.pdf)
+    ) {
+      const imageElements = this.exportable.customElements.pdf.filter(
+        (el) => el.type === "image"
+      );
+
+      // Pre-convert all image URLs to data URLs
+      for (const element of imageElements) {
+        const imageSrc = element.image || element.content;
+        if (
+          typeof imageSrc === "string" &&
+          (imageSrc.startsWith("http://") ||
+            imageSrc.startsWith("https://") ||
+            imageSrc.startsWith("/") ||
+            imageSrc.startsWith("./")) &&
+          !imageSrc.startsWith("data:")
+        ) {
+          try {
+            const dataUrl = await this._loadImageAsDataUrl(imageSrc);
+            // Update element with data URL for faster rendering
+            element._preloadedDataUrl = dataUrl;
+          } catch (error) {
+            console.warn("Failed to pre-load image:", imageSrc, error);
+          }
+        }
+      }
+    }
 
     // const body = data.map((row) => {
     //     return visibleColumns.map((col) => {
@@ -2964,18 +4159,47 @@ export default class DataTable {
       return visibleColumns.map((col) => row[col.label || col.name] || "");
     });
 
-    // Add title
-    doc.setFontSize(18);
-    doc.text(title, pageWidth / 2, 14, { align: "center" });
+    // Title and metadata are now handled via customElements
+    // Remove default title and metadata - users can add them via customElements if needed
 
     // Add metadata
-    doc.setFontSize(10);
-    doc.text(
-      `Generated on: ${new Date().toLocaleString()}`,
-      pageWidth - 15,
-      25,
-      { align: "right" }
-    );
+    // doc.setFontSize(10);
+    // doc.text(
+    //     `Generated on: ${new Date().toLocaleString()}`,
+    //     pageWidth - 15,
+    //     25,
+    //     { align: "right" }
+    // );
+
+    // Apply custom elements before table (header area)
+    // Apply text elements synchronously, images will be handled separately
+    if (
+      this.exportable?.customElements?.pdf &&
+      Array.isArray(this.exportable.customElements.pdf)
+    ) {
+      const headerElements = this.exportable.customElements.pdf.filter(
+        (el) =>
+          (el.position?.includes("top") ||
+            el.position === "center-left" ||
+            el.position === "center-right") &&
+          el.repeatOnPages !== true
+      );
+
+      // Apply text elements synchronously
+      headerElements
+        .filter((el) => el.type === "text")
+        .forEach((el) => {
+          applyTextToPdf(doc, el, pageWidth, pageHeight);
+        });
+
+      // Apply image elements asynchronously (before table generation)
+      const imagePromises = headerElements
+        .filter((el) => el.type === "image")
+        .map((el) => applyImageToPdf(doc, el, pageWidth, pageHeight));
+
+      // Wait for all images to load before continuing
+      await Promise.all(imagePromises);
+    }
 
     const hasFilters = this.search;
     let startY = 25;
@@ -2998,49 +4222,55 @@ export default class DataTable {
         cellPadding: 3,
       },
       headStyles: {
-        fillColor: [41, 128, 185],
-        textColor: 255,
+        fillColor: this.exportable.pdfOptions.headerStyles.fillColor,
+        textColor: this.exportable.pdfOptions.headerStyles.textColor,
       },
       margin: { top: 20 },
       didDrawPage: (dataArg) => {
         const pageNumber = doc.internal.getCurrentPageInfo().pageNumber;
         const totalPages = doc.internal.getNumberOfPages();
 
-        if (this.exportable?.pdfOptions.watermark?.text) {
-          const {
-            text,
-            opacity = 0.1,
-            angle: rawAngle = 90, // allow user input
-          } = this.exportable.pdfOptions.watermark;
+        // Apply custom elements on each page
+        if (
+          this.exportable?.customElements?.pdf &&
+          Array.isArray(this.exportable.customElements.pdf)
+        ) {
+          const pageElements = this.exportable.customElements.pdf.filter(
+            (el) => {
+              // Apply elements that should repeat on pages, or elements positioned at bottom/center
+              return (
+                el.repeatOnPages === true ||
+                el.position?.includes("bottom") ||
+                el.position === "center" ||
+                (pageNumber === 1 &&
+                  (el.position?.includes("top") ||
+                    el.position === "center-left" ||
+                    el.position === "center-right"))
+              );
+            }
+          );
 
-          const allowedAngles = [0, 45, 90, 135, 180, 225, 270, 315];
-          const angle = allowedAngles.includes(rawAngle) ? rawAngle : 45;
+          // Apply text elements synchronously
+          pageElements
+            .filter((el) => el.type === "text")
+            .forEach((el) => {
+              applyTextToPdf(doc, el, pageWidth, pageHeight);
+            });
 
-          // Center of page
-          const centerX = pageWidth / 2;
-          const centerY = pageHeight / 2;
-
-          // Set styles
-          doc.saveGraphicsState?.();
-
-          try {
-            doc.setGState?.(new doc.GState({ opacity }));
-          } catch (e) {
-            doc.setTextColor(200, 200, 200); // fallback
+          // Apply image elements asynchronously
+          // Note: Images in didDrawPage need to be handled carefully
+          // We'll apply them but they may need to be pre-loaded
+          const imageElements = pageElements.filter(
+            (el) => el.type === "image"
+          );
+          if (imageElements.length > 0) {
+            // Apply images - they will be loaded asynchronously
+            imageElements.forEach((el) => {
+              applyImageToPdf(doc, el, pageWidth, pageHeight).catch((err) => {
+                console.warn("Failed to apply image in PDF:", err);
+              });
+            });
           }
-
-          doc.setTextColor(150);
-          doc.setFontSize(40);
-          doc.setFont(undefined, "bold");
-
-          // Draw watermark text centered with rotation
-          doc.text(text, centerX, centerY, {
-            align: "center",
-            baseline: "middle",
-            angle: angle,
-          });
-
-          doc.restoreGraphicsState?.();
         }
 
         try {
@@ -3048,18 +4278,17 @@ export default class DataTable {
         } catch (e) {
           doc.setTextColor(30); // fallback: dark text
         }
-        // Footer / pagination
-        doc.setFontSize(8);
-        doc.setTextColor(150);
-        doc.text(
-          `Page ${pageNumber} of ${totalPages} (${totalProcessed} records)`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: "center" }
-        );
 
-        if (footer && totalProcessed > this.export?.chunkSize?.pdf) {
-          doc.text(footer, 15, pageHeight - 10);
+        // Footer / pagination - only show if footer is enabled
+        if (footer) {
+          doc.setFontSize(8);
+          doc.setTextColor(150);
+          doc.text(
+            `Page ${pageNumber} of ${totalPages} (${totalProcessed} records)`,
+            pageWidth / 2,
+            pageHeight - 10,
+            { align: "center" }
+          );
         }
       },
     });

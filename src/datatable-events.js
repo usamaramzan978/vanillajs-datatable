@@ -1,111 +1,56 @@
 /**
  * DataTable Event Constants
- * @namespace DataTableEvents
- * @description Event names used throughout the DataTable component
+ * 
+ * This module exports event name constants used throughout the DataTable library.
+ * All events are prefixed with "datatable:" when dispatched.
  */
 export const DataTableEvents = {
     /**
-     * Fired when the data table is initialized
-     * @event DataTable#init
+     * Fired when a row is activated (e.g., via Enter key or click)
+     * Event detail: { rowId, rowData, timestamp }
      */
-    INIT: "init",
-
+    ROW_ACTIVATE: "row-activate",
+    
     /**
-     * Fired when a column sort is applied or changed
-     * @event DataTable#sort
+     * Fired when a row is selected
+     * Event detail: { rowId, rowData }
      */
-    SORT: "sort",
-
+    ROW_SELECT: "row-select",
+    
     /**
-     * Fired when a filter input is changed
-     * @event DataTable#filter
+     * Fired when a row is deselected
+     * Event detail: { rowId }
      */
-    FILTER: "filter",
-
+    ROW_DESELECT: "row-deselect",
+    
     /**
-     * Fired when the page number changes (pagination)
-     * @event DataTable#pageChange
+     * Fired when selection changes
+     * Event detail: { selectedIds, selectedCount }
      */
-    PAGE_CHANGE: "pageChange",
-
+    SELECTION_CHANGE: "selection-change",
+    
     /**
-     * Fired when data loading starts
-     * @event DataTable#loading
+     * Fired when data is loaded
+     * Event detail: { data, total }
      */
-    LOADING: "loading",
-
+    DATA_LOADED: "data-loaded",
+    
     /**
-     * Fired when data loading completes successfully
-     * @event DataTable#loaded
+     * Fired when page changes
+     * Event detail: { page, perPage }
      */
-    LOADED: "loaded",
-
+    PAGE_CHANGE: "page-change",
+    
     /**
-     * Fired when an error occurs during data fetching or processing
-     * @event DataTable#error
+     * Fired when sorting changes
+     * Event detail: { column, order }
      */
-    ERROR: "error",
-
+    SORT_CHANGE: "sort-change",
+    
     /**
-     * Fired when a search term is entered or changed
-     * @event DataTable#search
+     * Fired when search/filter changes
+     * Event detail: { query, filteredCount }
      */
-    SEARCH: "search",
-
-    /**
-     * Fired when the number of items per page is changed
-     * @event DataTable#perPageChange
-     */
-    PER_PAGE_CHANGE: "perPageChange",
-
-    /**
-     * Fired when the data table is reset to initial state
-     * @event DataTable#reset
-     */
-    RESET: "reset",
-
-    /**
-     * Fired when the table data is explicitly reloaded/refreshed
-     * @event DataTable#reload
-     */
-    RELOAD: "reload",
-
-    /**
-     * Fired when table state is restored from saved state
-     * @event DataTable#stateRestored
-     */
-    STATE_RESTORED: "stateRestored",
-
-    // Selection-related events
-    /**
-     * Fired when any selection change occurs
-     * @event DataTable#selectionChanged
-     */
-    SELECTION_CHANGED: "selectionChanged",
-
-    /**
-     * Fired when a single row is selected
-     * @event DataTable#rowSelected
-     */
-    ROW_SELECTED: "rowSelected",
-
-    /**
-     * Fired when a single row is deselected
-     * @event DataTable#rowDeselected
-     */
-    ROW_DESELECTED: "rowDeselected",
-
-    /**
-     * Fired when all rows are selected
-     * @event DataTable#allSelected
-     */
-    ALL_SELECTED: "allSelected",
-
-    /**
-     * Fired when all rows are deselected
-     * @event DataTable#allDeselected
-     */
-    ALL_DESELECTED: "allDeselected",
-
-    ROW_ACTIVATE: "rowActivate",
+    SEARCH_CHANGE: "search-change",
 };
+

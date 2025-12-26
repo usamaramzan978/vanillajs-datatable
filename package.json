@@ -11,8 +11,8 @@
   "license": "MIT",
   "scripts": {
     "build": "rollup -c",
-    "test": "echo \"No tests specified\" && exit 0",
-    "prepare": "npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm run build",
     "postinstall": "node scripts/postinstall.js",
     "check:sizes": "node scripts/check-sizes.js",
     "size": "size-limit"
