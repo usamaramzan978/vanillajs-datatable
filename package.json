@@ -86,5 +86,15 @@
   ],
   "engines": {
     "node": ">=16"
+  },
+  "overrides": {
+    "glob": "^10.3.10",
+    "rimraf": "^5.0.5",
+    "archiver-utils": {
+      "glob": "^10.3.10"
+    },
+    "unzipper": {
+      "rimraf": "^5.0.5"
+    }
   }
 }
