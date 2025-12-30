@@ -17,17 +17,22 @@ A lightweight, dependency-free, and theme-friendly DataTable alternative to jQue
 ✅ Custom renderers – use JS to render rich content in cells  
 ✅ Responsive pagination – detailed or simple, with per-page selector  
 ✅ Export options – export to CSV, Excel, PDF, or Print  
-✅ Custom export settings – title, filename, chunk size, orientation, watermark  
+✅ Custom export settings – filename, chunk size, orientation, custom elements (images, text)  
 ✅ Infinite scroll – load more records while scrolling, optional  
 ✅ Range filtering – filter by min/max for dates or numbers (e.g., age, created_at)  
 ✅ Selection support – single or multiple row selection with class toggling  
 ✅ Loading state control – customize spinner element and delay  
 ✅ Keyboard navigation – move between rows using arrow keys  
-✅ Toggle column visibility – hide/show columns easily in config  
+✅ Toggle column visibility – hide/show columns with UI button or programmatically  
 ✅ Custom themes – override any class via theme config  
 ✅ Save state (optional) – persist filters/pagination in memory  
-✅ Tiny footprint – only ~18 kB Gzipped, fast and CDN-friendly
+✅ Tiny footprint – only ~26 kB Gzipped, fast and CDN-friendly
 ✅ Inline editing - edit any cell client-side without page refresh
+✅ Export progress tracking – real-time progress indicators with cancel option
+✅ Event handlers – row click, cell click, and hover callbacks
+✅ Sticky headers – keep table headers visible while scrolling
+✅ Advanced filters – multi-column filtering with range support
+✅ JSON export – export data as JSON format
 
 > 💡 vanillajs-datatable is built for modern projects using Tailwind, DaisyUI, or Bootstrap without bloat.
 
@@ -69,19 +74,21 @@ Full guides, config options, and code examples available at:
 ## Export Options
 
 Export your table data effortlessly:
-| Format | Library Used |
-| ------ | ---------------------------------------------------------------------------------------------------------- |
-| CSV | Native JS |
-| Excel | [`exceljs`](https://npmjs.com/package/exceljs) |
-| PDF | [`jspdf`](https://npmjs.com/package/jspdf), [`jspdf-autotable`](https://npmjs.com/package/jspdf-autotable) |
-| Print | Clean print preview |
+| Format | Library Used | Features |
+| ------ | ---------------------------------------------------------------------------------------------------------- | -------- |
+| CSV | Native JS | Progress tracking, chunked export |
+| Excel | [`exceljs`](https://npmjs.com/package/exceljs) | Progress tracking, custom styling, chunked export |
+| PDF | [`jspdf`](https://npmjs.com/package/jspdf), [`jspdf-autotable`](https://npmjs.com/package/jspdf-autotable) | Custom elements (images, text), progress tracking, chunked export |
+| Print | Clean print preview | Custom elements, chunked export |
+| JSON | Native JS | Export selected or all data |
 
 ## Bundle Size
 
 | File           | Brotli   | Gzip     |
 | -------------- | -------- | -------- |
-| `index.min.js` | 16.81 kB | 18.82 kB |
-| `index.esm.js` | 16.86 kB | 18.79 kB |
+| `index.min.js` | 22.28 kB | 26.18 kB |
+| `index.esm.js` | 38.50 kB | 46.42 kB |
+| `index.cjs.js` | 38.53 kB | 46.41 kB |
 
 > Built with `rollup` and compressed using `terser`, `brotli`, and `gzip`. Fast to load, even on slow networks.
 
