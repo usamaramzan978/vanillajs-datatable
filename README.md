@@ -69,7 +69,7 @@ const table = new DataTable({
 
 Full guides, config options, and code examples available at:
 
-[**Full Docs**](https://docs.elegantlaravel.com/)
+[**Full Docs**](https://usamaramzan978.github.io/vanillajs-datatable/)
 
 ## Export Options
 
