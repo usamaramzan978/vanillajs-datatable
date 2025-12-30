@@ -1,4 +1,3 @@
-import { DataTableEvents } from "./datatable-events";
 import { DEFAULT_THEME } from "./datatable-theme";
 
 export class Selectable {

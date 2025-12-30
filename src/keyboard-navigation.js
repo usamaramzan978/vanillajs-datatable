@@ -1,4 +1,3 @@
-import { DataTableEvents } from "./datatable-events";
 
 // Navigation Keys
 // | Key           | Action                             |
@@ -224,7 +223,7 @@ export class KeyboardNavigation {
         if (selectedIds.length === 0) return;
 
         this.table.dispatchEvent(
-            new CustomEvent(`datatable:${DataTableEvents.ROW_ACTIVATE}`, {
+            new CustomEvent(`datatable:row-activate`, {
                 detail: {
                     rowId: selectedIds[0],
                     rowData: this.getData().find(
@@ -277,7 +276,7 @@ export class KeyboardNavigation {
         this._scrollRowIntoView(row);
 
         this.table.dispatchEvent(
-            new CustomEvent(`datatable:${DataTableEvents.ROW_ACTIVATE}`, {
+            new CustomEvent(`datatable:row-activate`, {
                 detail: {
                     rowId: row.dataset.id,
                     rowData: this.getData().find(
